@@ -33,12 +33,13 @@ console.log('Container is hidden:', container ? container.classList.contains('hi
 
 console.log('\n=== Manual Testing Instructions ===');
 console.log('1. Upload an image to the 3D category');
-console.log('2. Draw some rectangles');
-console.log('3. Click the save button to show save results container');
-console.log('4. Observe button moves to left edge of container');
-console.log('5. Add more rectangles - button should move further left based on content width');
-console.log('6. Hide container - button should return to original position');
-console.log('7. Try undo/redo operations with container visible');
+console.log('2. Click the save button to show save results container (with no rectangles)');
+console.log('3. Observe button shakes UP AND DOWN at original position (no movement)');
+console.log('4. Draw some rectangles in 3D category');
+console.log('5. Button should stop shaking and move to left edge of container based on content');
+console.log('6. Add more rectangles - button should move further left');
+console.log('7. Hide container - button should return to original position');
+console.log('8. Delete all rectangles and show container again - button should shake at original position');
 
 // Test 6: Create test rectangles if 3D category exists
 if (typeof appState !== 'undefined' && appState['3D']) {
@@ -67,4 +68,17 @@ if (typeof appState !== 'undefined' && appState['3D']) {
     }
 } else {
     console.log('appState not available for testing');
+}
+
+// Test shake animation
+console.log('\n=== Test 8: Shake Animation Testing ===');
+const testButton = document.getElementById('saveResultsToggleBtn');
+console.log('Button has shake-empty class:', testButton ? testButton.classList.contains('shake-empty') : 'N/A');
+
+if (testButton && typeof updateButtonPositionBasedOnContent === 'function') {
+    console.log('To test shake animation manually:');
+    console.log('1. Clear all rectangles from 3D category');
+    console.log('2. Show save results container');
+    console.log('3. Button should shake UP AND DOWN at original position for 0.8 seconds');
+    console.log('4. Button should NOT move horizontally when empty');
 }

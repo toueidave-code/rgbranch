@@ -75,6 +75,28 @@ html {
     transform: translateY(-50%) scale(1.05);
 }
 
+/* Shaking animation for empty content state */
+@keyframes shake {
+    0%, 100% { transform: translateY(-50%); }
+    10% { transform: translateY(-60%); }
+    20% { transform: translateY(-40%); }
+    30% { transform: translateY(-62%); }
+    40% { transform: translateY(-38%); }
+    50% { transform: translateY(-58%); }
+    60% { transform: translateY(-42%); }
+    70% { transform: translateY(-55%); }
+    80% { transform: translateY(-45%); }
+    90% { transform: translateY(-50%); }
+}
+
+#saveResultsToggleBtn.shake-empty {
+    animation: shake 0.8s ease-in-out;
+}
+
+#saveResultsToggleBtn.shake-empty.showing-container:hover {
+    transform: translateY(-50%) scale(1.05);
+}
+
 /* Badge for save count */
 .save-count-badge {
     position: absolute;

@@ -540,6 +540,9 @@ if (window.pdfjsLib) {
             saveResultsToggleBtn.style.right = '';
             saveResultsToggleBtn.style.removeProperty('--movement-percentage');
 
+            // Remove shake animation when hiding container
+            saveResultsToggleBtn.classList.remove('shake-empty');
+
             // Update button icon and title
             const icon = saveResultsToggleBtn.querySelector('i');
             if (icon) {
@@ -592,18 +595,36 @@ if (window.pdfjsLib) {
         const containerWidth = 384; // w-96 = 24rem = 384px
         const containerRightOffset = 24; // right-6 = 1.5rem = 24px
         const baseButtonRightOffset = 16; // right-4 = 1rem = 16px
+        const hasRectangles = calculateRectangleContentWidth() > 0;
 
-        // Calculate how far to move based on rectangle content width
-        // Base movement: move button to left edge of container
-        // Additional movement: content-dependent movement further left
-        const baseMovement = containerWidth + containerRightOffset - baseButtonRightOffset;
-        const contentBasedMovement = (baseMovement * movementPercentage) / 100;
-        const totalMovement = baseMovement + contentBasedMovement;
+        if (!hasRectangles) {
+            // No content: keep button at original position, just shake
+            saveResultsToggleBtn.style.right = '';
+            saveResultsToggleBtn.style.transform = '';
+            saveResultsToggleBtn.classList.add('shake-empty');
 
-        // Apply dynamic positioning
-        saveResultsToggleBtn.style.right = `${totalMovement}px`;
-        saveResultsToggleBtn.style.transform = `translateY(-50%)`;
-        saveResultsToggleBtn.style.setProperty('--movement-percentage', `${movementPercentage}%`);
+            // Remove the class after animation completes to allow re-triggering
+            setTimeout(() => {
+                if (saveResultsToggleBtn) {
+                    saveResultsToggleBtn.classList.remove('shake-empty');
+                }
+            }, 800);
+        } else {
+            // Has content: move button based on rectangle width, no shaking
+            saveResultsToggleBtn.classList.remove('shake-empty');
+
+            // Calculate how far to move based on rectangle content width
+            // Base movement: move button to left edge of container
+            // Additional movement: content-dependent movement further left
+            const baseMovement = containerWidth + containerRightOffset - baseButtonRightOffset;
+            const contentBasedMovement = (baseMovement * movementPercentage) / 100;
+            const totalMovement = baseMovement + contentBasedMovement;
+
+            // Apply dynamic positioning
+            saveResultsToggleBtn.style.right = `${totalMovement}px`;
+            saveResultsToggleBtn.style.transform = `translateY(-50%)`;
+            saveResultsToggleBtn.style.setProperty('--movement-percentage', `${movementPercentage}%`);
+        }
     }
 
     function updateSaveCountBadge() {
