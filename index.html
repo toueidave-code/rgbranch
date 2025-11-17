@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>RAIN GUTTER DEPARTMENT</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        // Re-themed to be monochromatic, inspired by Daybreak Studio
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           text: {
+                               primary: 'rgb(5, 5, 5)',
+                               muted: 'rgb(100, 100, 100)',
+                           },
+                           accent: 'rgb(5, 5, 5)', // Black as accent
+                           'accent-contrast': 'rgb(255, 255, 255)' // White for contrast on accent
+                        },
+                        // Dark mode colors
+                        darkTheme: {
+                           background: 'rgb(5, 5, 5)',
+                           surface: 'rgb(20, 20, 20)',
+                           border: 'rgb(45, 45, 45)',
+                           text: {
+                               primary: 'rgb(250, 250, 250)',
+                               muted: 'rgb(150, 150, 150)',
+                           },
+                           accent: 'rgb(250, 250, 250)', // White as accent
+                           'accent-contrast': 'rgb(5, 5, 5)' // Black for contrast on accent
+                        },
+                        success: '#28a745',
+                        danger: '#dc3545',
+                    },
+                    fontFamily: {
+                        sans: ['Sora', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.4, 0, 0.2, 1)',
+                    },
+                    boxShadow: {
+                        'focus-ring': '0 0 0 3px rgba(var(--theme-accent-rgb), 0.3)',
+                        'subtle': '0 4px 12px rgba(0, 0, 0, 0.05)',
+                        'subtle-dark': '0 4px 12px rgba(0, 0, 0, 0.2)',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary dark:text-darkTheme-text-primary antialiased transition-colors duration-300 ease-custom-ease">
+
+    <!-- Hamburger Menu Button -->
+    <button id="hamburgerButton" class="fixed top-4 left-4 z-50 p-2 w-10 h-10 flex items-center justify-center rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-theme-background dark:focus:ring-offset-darkTheme-background focus:ring-theme-accent dark:focus:ring-darkTheme-accent transition-all duration-200 ease-custom-ease" title="Open Menu" aria-label="Open Navigation Menu">
+        <i class="bi bi-list text-xl"></i>
+    </button>
+
+    <!-- Side Navigation Menu -->
+    <nav id="sideMenu" class="fixed top-0 left-0 h-full w-64 bg-theme-surface dark:bg-darkTheme-surface shadow-lg z-[70] transform -translate-x-full transition-transform duration-300 ease-custom-ease p-6 flex flex-col">
+        <div class="flex justify-end mb-8">
+            <button id="closeMenuButton" class="p-2 rounded-full text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" title="Close Menu" aria-label="Close Navigation Menu">
+                <i class="bi bi-x-lg text-xl"></i>
+            </button>
+        </div>
+        <ul class="space-y-4">
+            <li>
+                <a href="tools\Area\index.html" target="_blank" class="block text-theme-text-primary dark:text-darkTheme-text-primary hover:text-theme-accent dark:hover:text-darkTheme-accent font-semibold text-lg transition-colors duration-200">GET ACTUAL AREA</a>
+            </li>
+            <li>
+                <a href="tools\Dimension\index.html" target="_blank" class="block text-theme-text-primary dark:text-darkTheme-text-primary hover:text-theme-accent dark:hover:text-darkTheme-accent font-semibold text-lg transition-colors duration-200">DIMENSION TO EXCEL</a>
+            </li>
+            <li>
+                <a href="tools\Sent\index.html" target="_blank" class="block text-theme-text-primary dark:text-darkTheme-text-primary hover:text-theme-accent dark:hover:text-darkTheme-accent font-semibold text-lg transition-colors duration-200">EMAIL SENT CHECKER</a>
+            </li>
+            <li>
+                <a href="tools\Level\index.html" target="_blank" class="block text-theme-text-primary dark:text-darkTheme-text-primary hover:text-theme-accent dark:hover:text-darkTheme-accent font-semibold text-lg transition-colors duration-200">IDHOME LEVEL</a>
+            </li>
+            <li>
+                <a href="tools\Tutorial\index.html" target="_blank" class="block text-theme-text-primary dark:text-darkTheme-text-primary hover:text-theme-accent dark:hover:text-darkTheme-accent font-semibold text-lg transition-colors duration-200">TUTORIALS</a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Menu Overlay -->
+    <div id="menuOverlay" class="fixed inset-0 bg-black/50 z-[60] hidden opacity-0 transition-opacity duration-300 ease-custom-ease"></div>
+      
+
+
+    <div class="fixed top-4 right-4 z-50 flex items-center space-x-3">
+        <button id="clockToggleButton" class="relative p-2 w-10 h-10 flex items-center justify-center rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-theme-background dark:focus:ring-offset-darkTheme-background focus:ring-theme-accent dark:focus:ring-darkTheme-accent overflow-hidden" title="Show Clock" aria-label="Toggle Clock">
+            <span id="clockIcon" class="opacity-100 transform scale-100 transition-all">
+                <i class="bi bi-clock text-lg"></i>
+            </span>
+            <span id="clockTimeText" class="absolute inset-0 flex items-center justify-center text-xs sm:text-sm font-mono whitespace-nowrap opacity-0 transform scale-90 transition-all">
+                MM/DD/YYYY HH:MM:SS
+            </span>
+        </button>
+        <button class="p-2 w-10 h-10 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-theme-background dark:focus:ring-offset-darkTheme-background focus:ring-theme-accent dark:focus:ring-darkTheme-accent transition-all duration-200 ease-custom-ease" id="themeToggleBtn" title="Toggle Theme" aria-label="Toggle Theme">
+            <i class="bi bi-moon text-lg block dark:hidden icon-moon"></i>
+            <i class="bi bi-sun text-lg hidden dark:block icon-sun"></i>
+        </button>
+        
+    </div>
+    
+            <div class="main-container w-full max-w-5xl mx-auto my-12 md:my-16 p-4 md:p-6">
+                <header class="app-header text-center mb-10 md:mb-5 border-b border-theme-border dark:border-darkTheme-border pb-3">
+                    <h1 class="text-4xl md:text-5xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-3 flex items-center justify-center tracking-tight">
+                        ☔ RAIN GUTTER DEPARTMENT
+                    </h1>
+                    <p class="text-base md:text-lg text-theme-text-muted dark:text-darkTheme-text-muted uppercase tracking-wider text-xs">For Side Drain & Vertical Drain Confirmation Only</p>
+                    <p id="fileNameDisplay" class="text-center font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-2"></p>
+                </header>
+                
+
+                <section class="category-section mb-10 md:mb-10">
+                    <div class="category-selector flex justify-center items-center space-x-6 sm:space-x-10 border-b border-theme-border dark:border-darkTheme-border pb-3">
+                        <button type="button" class="category-button py-2 text-sm uppercase tracking-widest focus:outline-none" data-category="EXCEL">EXCEL</button>
+                        <button type="button" class="category-button py-2 text-sm uppercase tracking-widest focus:outline-none" data-category="2D">2D</button>
+                        <button type="button" class="category-button py-2 text-sm uppercase tracking-widest focus:outline-none" data-category="3D">3D</button>
+                        <button type="button" class="category-button py-2 text-sm uppercase tracking-widest focus:outline-none" data-category="SHINSEIZU">SHINSEIZU</button>
+                    </div>
+                </section>
+
+                
+
+                <section class="canvas-section mb-10 md:mb-12">
+                    <div class="flex justify-between items-end mb-4 pb-3 border-b border-theme-border dark:border-darkTheme-border">
+                        <h2 class="section-title text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary tracking-tight">
+                            Drawing Canvas <span class="text-theme-text-muted dark:text-darkTheme-text-muted text-sm font-normal">(for <span id="currentCategoryInfo">EXCEL</span>)</span>
+                        </h2>
+                        <div class="flex items-center space-x-2 sm:space-x-3">
+                            <button id="undoButton" class="p-2 rounded-full hover:bg-theme-surface dark:hover:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" title="Undo (Ctrl+Z)" aria-label="Undo last drawing action">
+                                <i class="bi bi-arrow-counterclockwise text-xl"></i>
+                            </button>
+                            <button id="redoButton" class="p-2 rounded-full hover:bg-theme-surface dark:hover:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" title="Redo (Ctrl+Y)" aria-label="Redo last undone drawing action">
+                                <i class="bi bi-arrow-clockwise text-xl"></i>
+                            </button>
+                            <button id="fitZoomButton" class="p-2 rounded-full hover:bg-theme-surface dark:hover:bg-darkTheme-surface text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" title="Fit Zoom to Canvas" aria-label="Fit Zoom to Canvas">
+                                <i class="bi bi-arrows-fullscreen text-xl"></i>
+                            </button>
+                            <button id="clearButton" class="p-2 rounded-full text-red-500 hover:bg-red-500/10 dark:hover:bg-red-500/20 focus:outline-none focus:ring-2 focus:ring-red-500" title="Clear drawings" aria-label="Clear all drawings for current category">
+                                <i class="bi bi-eraser text-xl"></i>
+                            </button>
+                                <!-- Duplicate Window Button -->
+            <button id="duplicateWindowBtn" aria-label="Duplicate window" title="Duplicate Window"
+                    class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                <i class="bi bi-window-plus text-lg"></i>
+            </button>
+                        </div>
+                    </div>
+                    <div id="imageCanvasContainer" class="relative bg-theme-surface/70 dark:bg-darkTheme-surface/70 border-2 border-dashed border-theme-border dark:border-darkTheme-border hover:border-theme-accent dark:hover:border-darkTheme-accent rounded-xl min-h-[450px] md:min-h-[550px] flex items-center justify-center overflow-hidden" title="Click to upload, paste, or drop an image/PDF">
+                        <canvas id="imageCanvas" class="max-w-full max-h-full"></canvas>
+                        <div class="placeholder-text absolute inset-0 flex flex-col items-center justify-center text-theme-text-muted dark:text-darkTheme-text-muted text-center p-4 pointer-events-none" id="placeholderText">
+                            <i class="bi bi-cloud-arrow-up text-4xl md:text-5xl mb-3"></i>
+                            <span class="font-semibold text-base">Drop a PDF or Image file</span>
+                            <span class="text-sm">or click here to browse</span>
+                        </div>
+                    </div>
+                    <p class="info-text text-center mt-3 text-sm text-theme-text-muted dark:text-darkTheme-text-muted">Click/Drag on image: Left for Red, Right for Blue. Ctrl + Scroll to zoom.</p>
+                </section>
+
+                <section class="finish-section text-center my-10 md:my-12">
+                    <div class="flex justify-center items-center gap-4 flex-wrap">
+                        <button id="finishButton" class="control-button primary text-base md:text-lg py-3 px-8 md:py-4 md:px-12 rounded-lg font-semibold focus:outline-none focus:ring-4 focus:ring-offset-4 dark:focus:ring-offset-darkTheme-background focus:ring-theme-accent/50 dark:focus:ring-darkTheme-accent/50 bg-theme-accent hover:bg-opacity-80 text-theme-accent-contrast dark:bg-darkTheme-accent dark:hover:bg-opacity-80 dark:text-darkTheme-accent-contrast transition-all duration-200" data-original-button-type="primary" title="Compile all images">
+                            <i class="bi bi-check-circle-fill"></i> Compile & Finish
+                        </button>
+
+                        <button id="saveForLaterButton" class="control-button bg-theme-accent hover:bg-opacity-80 text-theme-accent-contrast dark:bg-darkTheme-accent dark:hover:bg-opacity-80 dark:text-darkTheme-accent-contrast px-6 py-3 rounded-lg font-semibold transition-all duration-200" title="Save current work for later">
+                            <i class="bi bi-cloud-upload-fill"></i>
+                            Save for Later
+                        </button>
+                    </div>
+
+                    <div id="saveStatusMessage" class="mt-3 text-sm text-theme-text-muted dark:text-darkTheme-text-muted hidden"></div>
+                </section>
+
+              
+
+                <!-- Save for Later Results Container -->
+<div id="saveResultsContainer" class="fixed top-24 right-6 w-96 max-h-[calc(120vh-8rem)] z-[40] space-y-3 hidden overflow-y-auto transition-all duration-300 overflow-hidden">
+    <!-- Container for multiple save result boxes -->
+</div>
+
+<!-- Save Results Toggle Button -->
+<button id="saveResultsToggleBtn" class="fixed top-1/2 right-4 transform -translate-y-1/2 bg-white/90 dark:bg-black/90 backdrop-blur-sm text-gray-700 dark:text-gray-300 hover:bg-white dark:hover:bg-black border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 rounded-lg shadow-sm hover:shadow-md px-4 py-3 z-[45] transition-all duration-300 ease-out flex items-center justify-center group hover:scale-105 active:scale-95" title="Toggle saved results" aria-expanded="false" aria-controls="saveResultsContainer">
+    <span class="text-xl font-bold transition-colors duration-300 group-hover:text-theme-accent dark:group-hover:text-darkTheme-accent">&lt;</span>
+    <span id="saveCountBadge" class="absolute -top-2 -right-2 bg-gradient-to-r from-red-500 to-pink-500 text-white text-xs font-medium rounded-full w-5 h-5 flex items-center justify-center shadow-sm scale-0 transition-transform duration-300 origin-center" style="min-width: 1.25rem; min-height: 1.25rem;">0</span>
+</button>
+
+                <section class="results-section bg-theme-surface dark:bg-darkTheme-surface p-4 md:p-6 rounded-xl border border-theme-border dark:border-darkTheme-border">
+                    <h2 class="section-title text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4 pb-3 border-b border-theme-border dark:border-darkTheme-border tracking-tight">Compiled Result</h2>
+                    <div id="resultsContainer" class="bg-theme-background dark:bg-darkTheme-background p-2 md:p-4 rounded-lg min-h-[200px] md:min-h-[250px] flex justify-center items-center overflow-auto border border-theme-border dark:border-darkTheme-border flex-col gap-4">
+                        <p id="resultsPlaceholder" class="text-theme-text-muted dark:text-darkTheme-text-muted text-base flex items-center"><i class="bi bi-info-circle text-2xl mr-3"></i>Your compiled image will appear here.</p>
+                    </div>
+                </section>
+
+                <footer class="app-footer text-center mt-12 pt-6 border-t border-theme-border dark:border-darkTheme-border">
+                    <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs uppercase tracking-widest">&copy; 2025 RAIN GUTTER DEPARTMENT.</p>
+                </footer>
+            </div>
+
+            <div id="clearConfirmationModal" class="fixed inset-0 z-[80] bg-black/60 flex items-center justify-center p-4 hidden transition-opacity duration-300 ease-custom-ease opacity-0">
+                <div class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark w-full max-w-sm transform transition-transform duration-300 ease-custom-ease scale-95">
+                    <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4">Confirm Clear</h3>
+                    <p class="text-sm text-theme-text-muted dark:text-darkTheme-text-muted mb-6">Are you sure you want to clear all drawings for the current category (<span id="modalCategoryName"></span>)? This action cannot be undone.</p>
+                    <div class="flex justify-end space-x-3">
+                        <button id="cancelClearButton" class="px-4 py-2 text-sm font-medium text-theme-text-primary dark:text-darkTheme-text-primary bg-theme-border dark:bg-darkTheme-border hover:bg-opacity-70 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent">Cancel</button>
+                        <button id="confirmClearButton" class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500">Confirm Clear</button>
+                    </div>
+                </div>
+            </div>
+
+
+
+       
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="script.js"></script>
+
+    
+</body>
+</html>

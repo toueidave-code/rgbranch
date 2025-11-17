@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en" class="light"> <!-- Added 'light' class for initial theme -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IMAGE NUMBER EXTRACTOR | Rain Gutter Department</title>
+    <link rel="icon" type="image/png" href="icon.png"> <!-- Assuming icon.png exists -->
+    <!-- Tailwind CSS CDN for utility classes -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <!-- Google Fonts for 'Sora' typography - Matches TCD Raingutter site -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap Icons CDN for consistent iconography - Matches TCD Raingutter site -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <!-- Tailwind CSS Configuration (MUST be in a script tag) -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class', // Enable dark mode based on 'dark' class on HTML tag
+            theme: {
+                extend: {
+                    colors: {
+                        // Re-themed to be monochromatic, inspired by Daybreak Studio
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           'text-primary': 'rgb(5, 5, 5)',
+                           'text-muted': 'rgb(107, 114, 128)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)', // White text on accent
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255', // For rgba usage in custom CSS
+                           'text-primary-rgb': '5, 5, 5',
+                        },
+                        darkTheme: {
+                           background: 'rgb(20, 20, 20)',
+                           surface: 'rgb(30, 30, 30)',
+                           border: 'rgb(50, 50, 50)',
+                           'text-primary': 'rgb(240, 240, 240)',
+                           'text-muted': 'rgb(150, 150, 150)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '240, 240, 240',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'], // Set Sora as default sans-serif
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+                        'subtle-dark': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.18)',
+                    }
+                }
+            }
+        };
+    </script>
+    
+    <!-- Custom Stylesheet (for non-Tailwind specific styles like scrollbars) -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary antialiased min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ease-custom-ease font-sans">
+    
+    <div class="w-full max-w-4xl md:max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 bg-theme-background dark:bg-darkTheme-background rounded-lg shadow-lg border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 md:mb-8 py-4">
+            <!-- Button Row - Always on top -->
+            <div class="flex justify-between items-center w-full z-10">
+                <!-- Left Button Group -->
+                <div class="flex items-center gap-2">
+                    <a href="https://tcd-raingutter.netlify.app/" aria-label="Back to home" title="Back to Home" 
+                       class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-house-door text-lg"></i>
+                    </a>
+                    <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-arrow-clockwise text-lg"></i>
+                    </button>
+                    <button id="closeWindowBtn" aria-label="Close window" title="Close Window" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Theme Toggle Button - Right side in mobile -->
+                <button id="themeToggleBtn" aria-label="Toggle theme" title="Toggle Theme"
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200 sm:hidden">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+
+            <!-- Title Section - Below buttons in mobile, centered in desktop -->
+            <div class="w-full sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 text-center">
+                <h1 class="text-xl sm:text-2xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-1">☔ RAIN GUTTER DEPT TOOLS</h1>
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs">Dimension to Excel</p>
+            </div>
+
+            <!-- Theme Toggle Button - Only visible on desktop -->
+            <div class="hidden sm:block z-10">
+                <button id="themeToggleBtnDesktop" aria-label="Toggle theme" title="Toggle Theme" 
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+        </header>
+
+        <main class="content-wrapper flex flex-col lg:flex-row gap-6">
+            <!-- Column 1: Image Upload -->
+            <section class="column image-upload-section flex-1 bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+                <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4">Upload Images</h2>
+                <div 
+                    id="drop-area" 
+                    class="drop-area border-2 border-dashed border-theme-border dark:border-darkTheme-border rounded-lg p-8 text-center cursor-pointer mb-6 transition-all duration-200 ease-custom-ease hover:border-theme-accent hover:bg-theme-background dark:hover:border-darkTheme-accent dark:hover:bg-darkTheme-background" 
+                    ondragover="event.preventDefault(); this.classList.add('dragover-active');" 
+                    ondragleave="this.classList.remove('dragover-active');" 
+                    ondrop="handleDrop(event)">
+                    <p class="text-theme-text-muted dark:text-darkTheme-text-muted mb-2">Drag & Drop your images here</p>
+                    <p class="text-theme-text-muted dark:text-darkTheme-text-muted mb-4">or</p>
+                    <input type="file" id="file-input" accept="image/*" multiple onchange="handleFiles(this.files)" class="hidden">
+                    <label for="file-input" class="upload-button inline-block px-6 py-3 bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-all duration-200 ease-custom-ease shadow-md">Browse Files</label>
+                </div>
+                <div id="image-previews" class="image-previews flex flex-wrap gap-3 justify-center mb-6"></div>
+                <button id="extract-button" disabled
+                        class="w-full px-4 py-3 bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-all duration-200 ease-custom-ease shadow-md disabled:bg-theme-border disabled:text-theme-text-muted dark:disabled:bg-darkTheme-border dark:disabled:text-darkTheme-text-muted disabled:cursor-not-allowed">
+                    Extract Numbers
+                </button>
+            </section>
+
+            <!-- Column 2: Extracted Numbers -->
+            <section class="column extracted-numbers-section flex-1 bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+                <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4">Extracted Numbers</h2>
+              <ul id="numbers-list" class="numbers-list list-none p-0 max-h-96 overflow-y-auto border border-theme-border dark:border-darkTheme-border rounded-lg mb-6 bg-theme-background dark:bg-darkTheme-background dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast">
+    <!-- Default placeholder text -->
+    <li class="p-3 text-theme-text-muted dark:text-white text-center italic">
+        Upload images and click "Extract Numbers"
+    </li>
+</ul>
+                <button id="copy-button" disabled
+                        class="w-full px-4 py-3 bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-all duration-200 ease-custom-ease shadow-md mb-3 disabled:bg-theme-border disabled:text-theme-text-muted dark:disabled:bg-darkTheme-border dark:disabled:text-darkTheme-text-muted disabled:cursor-not-allowed">
+                    Copy All Numbers
+                </button>
+                <button id="clear-button" disabled
+                        class="w-full px-4 py-3 bg-theme-error text-theme-accent-contrast dark:bg-darkTheme-error dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-error transition-all duration-200 ease-custom-ease shadow-md disabled:bg-theme-border disabled:text-theme-text-muted dark:disabled:bg-darkTheme-border dark:disabled:text-darkTheme-text-muted disabled:cursor-not-allowed">
+                    Clear All
+                </button>
+            </section>
+        </main>
+    </div>
+         <!-- Footer Section -->
+        <footer class="text-center mt-8 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">
+            © 2025 ROOF SLOPE AREA | Rain Gutter Department
+        </footer>
+    
+    <!-- Message box element (styled to match TCD Raingutter's toast notifications) -->
+    <div id="app-message" class="fixed top-6 left-1/2 -translate-x-1/2 bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary p-4 rounded-lg shadow-lg border border-theme-border dark:border-darkTheme-border opacity-0 transition-opacity duration-300 ease-custom-ease z-50 hidden" role="alert" aria-live="polite"></div>
+    
+    <!-- Main JavaScript file -->
+    <script src="script.js"></script>
+</body>
+</html>

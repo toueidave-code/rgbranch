@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROOF SLOPE AREA | Rain Gutter Department</title>
+    <!-- Favicon from previous submission -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <!-- Tailwind CSS CDN for utility classes -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <!-- Bootstrap Icons CDN for consistent iconography -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts for 'Sora' typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        // Tailwind CSS Configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           'text-primary': 'rgb(5, 5, 5)',
+                           'text-muted': 'rgb(107, 114, 128)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '5, 5, 5',
+                        },
+                        darkTheme: {
+                           background: 'rgb(20, 20, 20)',
+                           surface: 'rgb(30, 30, 30)',
+                           border: 'rgb(50, 50, 50)',
+                           'text-primary': 'rgb(240, 240, 240)',
+                           'text-muted': 'rgb(150, 150, 150)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '240, 240, 240',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+                        'subtle-dark': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.18)',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom CSS for scrollbars and animations */
+        :root {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+            --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5);
+        }
+        html.dark {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+            --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5);
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+        body { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+        /* Animation for loading spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-spin {
+            animation: spin 0.5s linear infinite;
+        }
+        .animate-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        .ease-custom-ease { 
+            transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+        }
+    </style>
+</head>
+<body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary antialiased min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ease-custom-ease font-sans">
+    
+    <div class="w-full max-w-4xl md:max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 bg-theme-background dark:bg-darkTheme-background rounded-lg shadow-lg border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 md:mb-8 py-4">
+            <!-- Button Row - Always on top -->
+            <div class="flex justify-between items-center w-full z-10">
+                <!-- Left Button Group -->
+                <div class="flex items-center gap-2">
+                    <a href="\index.html" aria-label="Back to home" title="Back to Home" 
+                       class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-house-door text-lg"></i>
+                    </a>
+                    <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-arrow-clockwise text-lg"></i>
+                    </button>
+                    <button id="closeWindowBtn" aria-label="Close window" title="Close Window" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Theme Toggle Button - Right side in mobile -->
+                <button id="themeToggleBtn" aria-label="Toggle theme" title="Toggle Theme"
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200 sm:hidden">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+
+            <!-- Title Section - Below buttons in mobile, centered in desktop -->
+            <div class="w-full sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 text-center">
+                <h1 class="text-xl sm:text-2xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-1">☔ RAIN GUTTER DEPT TOOLS</h1>
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs">ROOF SLOPE AREA CALCULATOR</p>
+            </div>
+
+            <!-- Theme Toggle Button - Only visible on desktop -->
+            <div class="hidden sm:block z-10">
+                <button id="themeToggleBtnDesktop" aria-label="Toggle theme" title="Toggle Theme" 
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+        </header>
+        
+        <!-- Calculator Input Card -->
+        <div class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-6 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+            <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4">Calculate Actual Area</h2>
+            
+            <div class="mb-4">
+                <label for="topArea" class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">TOP-VIEW AREA</label>
+                <div class="relative">
+                    <input type="number" id="topArea" step="0.01" placeholder="1.21" value="1.21" 
+                           class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease"
+                           aria-label="Top-view area in square meters">
+                    <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">m²</span>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">SLOPE RATIO</label>
+                <div class="flex items-center space-x-3">
+                    <div class="relative flex-1">
+                        <input type="number" id="rise" placeholder="6" value="6" 
+                               class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease"
+                               aria-label="Slope rise value">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">rise</span>
+                    </div>
+                    <span class="text-theme-text-primary dark:text-darkTheme-text-primary text-lg font-bold">:</span>
+                    <div class="relative flex-1">
+                        <input type="number" id="run" placeholder="10" value="10" 
+                               class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease"
+                               aria-label="Slope run value">
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">run</span>
+                    </div>
+                </div>
+            </div>
+            
+            <button id="calculateButton" 
+                    class="w-full px-4 py-3 bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-all duration-200 ease-custom-ease shadow-md">
+                CALCULATE ACTUAL AREA
+            </button>
+
+            <!-- Error message display -->
+            <div id="errorMessage" class="error-message mt-4 p-3 bg-theme-error text-white rounded-md text-center text-sm font-medium hidden opacity-0 transition-opacity duration-300 ease-custom-ease" role="alert" aria-live="polite"></div>
+        </div>
+        
+        <!-- Result Card -->
+        <div id="result" class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark border border-theme-success dark:border-darkTheme-success hidden opacity-0 transition-all duration-300 ease-custom-ease transform translate-y-5">
+            <h3 class="text-lg font-semibold text-theme-success dark:text-darkTheme-success mb-4 flex items-center">
+                <i class="bi bi-check-circle-fill mr-2"></i> [ SUCCESS ]
+            </h3>
+            <div class="text-4xl font-bold text-theme-success dark:text-darkTheme-success mb-4" id="actualArea">1.41 m²</div>
+            
+            <div class="space-y-2 text-sm">
+                <div class="flex justify-between text-theme-text-primary dark:text-darkTheme-text-primary">
+                    <span class="text-theme-text-muted dark:text-darkTheme-text-muted">Top-view area:</span>
+                    <span class="font-medium" id="displayTopArea">1.21 m²</span>
+                </div>
+                <div class="flex justify-between text-theme-text-primary dark:text-darkTheme-text-primary">
+                    <span class="text-theme-text-muted dark:text-darkTheme-text-muted">Slope ratio:</span>
+                    <span class="font-medium" id="displaySlope">6:10</span>
+                </div>
+                <div class="flex justify-between text-theme-text-primary dark:text-darkTheme-text-primary">
+                    <span class="text-theme-text-muted dark:text-darkTheme-text-muted">Incline angle:</span>
+                    <span class="font-medium" id="displayAngle">30.96°</span>
+                </div>
+            </div>
+            
+            <div class="mt-6 p-3 bg-theme-background dark:bg-darkTheme-background border-l-4 border-theme-accent rounded-md">
+                <p class="text-xs font-medium text-theme-accent dark:text-darkTheme-accent mb-1">Calculation Method</p>
+                <p class="text-sm text-theme-text-primary dark:text-darkTheme-text-primary leading-relaxed">
+                    A<sub>actual</sub> = A<sub>top</sub> / cosθ = A<sub>top</sub> × √(1 + (rise/run)²)
+                </p>
+            </div>
+        </div>
+        
+        <!-- Footer Section -->
+        <footer class="text-center mt-8 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">
+            © 2025 ROOF SLOPE AREA | Rain Gutter Department
+        </footer>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const htmlElement = document.documentElement;
+        const topAreaInput = document.getElementById('topArea');
+        const riseInput = document.getElementById('rise');
+        const runInput = document.getElementById('run');
+        const calculateButton = document.getElementById('calculateButton');
+        const resultCard = document.getElementById('result');
+        const actualAreaDisplay = document.getElementById('actualArea');
+        const displayTopArea = document.getElementById('displayTopArea');
+        const displaySlope = document.getElementById('displaySlope');
+        const displayAngle = document.getElementById('displayAngle');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        const themeToggleButton = document.getElementById('themeToggleBtn');
+        const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
+
+        /**
+         * Displays an error message to the user with a fade-in effect.
+         * @param {string} message - The error message to display.
+         */
+        function showErrorMessage(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.style.display = 'block';
+            setTimeout(() => errorMessageDiv.classList.add('opacity-100'), 10);
+        }
+
+        /**
+         * Hides the error message with a fade-out effect.
+         */
+        function hideErrorMessage() {
+            errorMessageDiv.classList.remove('opacity-100');
+            setTimeout(() => errorMessageDiv.style.display = 'none', 300);
+        }
+
+        /**
+         * Calculates the actual roof area based on top-view area and slope ratio.
+         */
+        function calculateArea() {
+            hideErrorMessage();
+
+            const topArea = parseFloat(topAreaInput.value);
+            const rise = parseFloat(riseInput.value);
+            const run = parseFloat(runInput.value);
+            
+            // Input validation
+            if (isNaN(topArea)) {
+                showErrorMessage("ERROR: Please enter a valid top-view area");
+                hideResultCard();
+                return;
+            }
+            if (isNaN(rise) || isNaN(run) || run === 0) {
+                showErrorMessage("ERROR: Please enter valid slope ratio values (run cannot be zero)");
+                hideResultCard();
+                return;
+            }
+            
+            // Calculate incline angle and actual area
+            const slope = rise / run;
+            const angleRad = Math.atan(slope);
+            const angleDeg = angleRad * (180 / Math.PI);
+            const actualArea = (topArea / Math.cos(angleRad)).toFixed(2);
+            
+            // Update display elements
+            actualAreaDisplay.textContent = actualArea + ' m²';
+            displayTopArea.textContent = topArea + ' m²';
+            displaySlope.textContent = rise + ':' + run;
+            displayAngle.textContent = angleDeg.toFixed(2) + '°';
+            
+            // Show result card with animation
+            showResultCard();
+        }
+
+        /**
+         * Shows the result card with animation
+         */
+        function showResultCard() {
+            resultCard.style.display = 'block';
+            setTimeout(() => {
+                resultCard.classList.remove('opacity-0', 'translate-y-5');
+                resultCard.classList.add('opacity-100', 'translate-y-0');
+                resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }, 10);
+        }
+
+        /**
+         * Hides the result card with animation
+         */
+        function hideResultCard() {
+            resultCard.classList.remove('opacity-100', 'translate-y-0');
+            resultCard.classList.add('opacity-0', 'translate-y-5');
+            setTimeout(() => resultCard.style.display = 'none', 300);
+        }
+
+        /**
+         * Applies the specified theme (light or dark) to the HTML document.
+         * Stores the preference in localStorage.
+         * @param {string} theme - 'light' or 'dark'.
+         */
+        function applyTheme(theme) {
+            htmlElement.classList.remove('light', 'dark');
+            htmlElement.classList.add(theme);
+            localStorage.setItem('tcdRaingutterTheme', theme);
+
+            // Update theme toggle icon visibility
+            const moonIcons = document.querySelectorAll('.icon-moon');
+            const sunIcons = document.querySelectorAll('.icon-sun');
+            
+            moonIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'none' : 'block';
+            });
+            
+            sunIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'block' : 'none';
+            });
+        }
+
+        /**
+         * Toggles between light and dark theme
+         */
+        function toggleTheme() {
+            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme based on localStorage or system preference
+            const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
+                                 (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(preferredTheme);
+
+            // Calculator button and input listeners
+            calculateButton.addEventListener('click', calculateArea);
+            topAreaInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateArea(); });
+            riseInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateArea(); });
+            runInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateArea(); });
+
+            // Theme toggle listeners
+            themeToggleButton.addEventListener('click', toggleTheme);
+            themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+
+            // Refresh button functionality
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                icon.classList.add('animate-spin');
+                setTimeout(() => {
+                    icon.classList.remove('animate-spin');
+                    window.location.reload();
+                }, 500);
+            });
+
+            // Close window button with confirmation
+            document.getElementById('closeWindowBtn').addEventListener('click', function() {
+                if (confirm('Are you sure you want to close this window?')) {
+                    try {
+                        window.close();
+                        if (!window.closed) {
+                            alert('This window cannot be closed programmatically. Please close it manually.');
+                        }
+                    } catch (error) {
+                        alert('An error occurred while trying to close the window: ' + error.message);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectSent Viewer</title>
+    <link rel="icon" type="image/png" href="icon.png">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        // Tailwind CSS Configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           'text-primary': 'rgb(5, 5, 5)',
+                           'text-muted': 'rgb(107, 114, 128)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '5, 5, 5',
+                        },
+                        darkTheme: {
+                           background: 'rgb(20, 20, 20)',
+                           surface: 'rgb(30, 30, 30)',
+                           border: 'rgb(50, 50, 50)',
+                           'text-primary': 'rgb(240, 240, 240)',
+                           'text-muted': 'rgb(150, 150, 150)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '240, 240, 240',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+                        'subtle-dark': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.18)',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom CSS for scrollbars and animations */
+        :root {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+            --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5);
+        }
+        html.dark {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+            --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5);
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+        body { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+        /* Animation for loading spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-spin {
+            animation: spin 0.5s linear infinite;
+        }
+        .animate-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        .ease-custom-ease { 
+            transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+        }
+
+        /* Additional custom styles */
+        .preview-section {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-theme-background text-theme-text-primary antialiased min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ease-custom-ease font-sans">
+    
+    <div class="w-full max-w-4xl md:max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 bg-theme-background dark:bg-darkTheme-background rounded-lg shadow-lg border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+        
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 md:mb-8 py-4">
+            <div class="flex justify-between items-center w-full z-10">
+                <div class="flex items-center gap-2">
+                    <a href="\rg\index.html" aria-label="Back to home" title="Back to Home" 
+                       class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-house-door text-lg"></i>
+                    </a>
+                    <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-arrow-clockwise text-lg"></i>
+                    </button>
+                    <button id="closeWindowBtn" aria-label="Close window" title="Close Window" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+
+                <button id="themeToggleBtn" aria-label="Toggle theme" title="Toggle Theme"
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200 sm:hidden">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+
+            <div class="w-full sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 text-center">
+                <h1 class="text-xl sm:text-2xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-1">📋 PROJECTSENT DATA</h1>
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs">PROJECT SENT VIEWER</p>
+            </div>
+
+            <div class="hidden sm:block z-10">
+                <button id="themeToggleBtnDesktop" aria-label="Toggle theme" title="Toggle Theme" 
+                        class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                    <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                    <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                </button>
+            </div>
+        </header>
+
+        <div class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-6 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+            <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-4">Image Text Extractor</h2>
+            <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-sm text-center">Upload an image or **paste** a screenshot (Ctrl+V or Cmd+V).</p>
+            <div class="upload-section mt-6 p-6 flex flex-col items-center justify-center border-2 border-dashed border-theme-border dark:border-darkTheme-border rounded-lg transition-colors duration-300 ease-custom-ease">
+                <input type="file" id="imageInput" accept="image/*" class="file-input hidden">
+                <label for="imageInput" class="file-label px-4 py-2 bg-theme-accent text-theme-accent-contrast rounded-md font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Choose Image</label>
+                <div class="text-theme-text-muted dark:text-darkTheme-text-muted text-sm my-2">or drag and drop here</div>
+                <button id="extractButton" class="button primary px-6 py-2 mt-4 bg-theme-accent text-theme-accent-contrast rounded-md font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
+                    Extract Text <span id="loadingSpinner" class="spinner animate-spin" style="display: none;"></span>
+                </button>
+            </div>
+        </div>
+
+        <div id="previewSection" class="preview-section bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease mb-6">
+            <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-4">Extracted Data Preview</h3>
+            <div class="overflow-x-auto">
+                <table id="previewTable" class="w-full data-table border-collapse">
+                    <thead>
+                        <tr class="bg-theme-border dark:bg-darkTheme-border">
+                            <th class="py-3 px-4 font-semibold text-left">Project Number</th>
+                            <th class="py-3 px-4 font-semibold text-left">Project Name</th>
+                            <th class="py-3 px-4 font-semibold text-left">Building No.</th>
+                            <th class="py-3 px-4 font-semibold text-left">Sent Date</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-theme-border dark:divide-darkTheme-border"></tbody>
+                </table>
+            </div>
+            <div class="flex justify-center mt-6">
+                <button id="saveButton" class="button primary px-6 py-3 bg-theme-success text-white rounded-md font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Save to Database</button>
+            </div>
+        </div>
+        
+        <hr class="border-t border-theme-border dark:border-darkTheme-border my-6">
+
+        <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-4">Saved Data</h2>
+        <div class="overflow-x-auto">
+            <table id="dataTable" class="w-full data-table border-collapse">
+                <thead>
+                    <tr class="bg-theme-border dark:bg-darkTheme-border">
+                        <th class="py-3 px-4 font-semibold text-left">Project Number</th>
+                        <th class="py-3 px-4 font-semibold text-left">Project Name</th>
+                        <th class="py-3 px-4 font-semibold text-left">Building No.</th>
+                        <th class="py-3 px-4 font-semibold text-left">Sent Date</th>
+                        <th class="py-3 px-4 font-semibold text-left">Thunderbird Sent</th>
+                        <th class="py-3 px-4 font-semibold text-left">Thunderbird Date</th>
+                        <th class="py-3 px-4 font-semibold text-left">Notes</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-theme-border dark:divide-darkTheme-border"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_URL = "https://rain-gutter-2445d-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const COLLECTION = "projectSent";
+        const API_KEY = "AIzaSyAAa9FqvM8LEY6u6REzBRUk3PYzrrrO8Hw"; // Firebase Realtime Database API Key
+        const geminiApiKey = "AIzaSyAUo35gojTVjmQTDzCp__HBMgeIGCkVzjc"; // Gemini API Key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiApiKey}`;
+
+        // DOM Elements
+        const htmlElement = document.documentElement;
+        const dataTableBody = document.querySelector("#dataTable tbody");
+        const imageInput = document.getElementById('imageInput');
+        const extractButton = document.getElementById('extractButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const previewSection = document.getElementById('previewSection');
+        const previewTableBody = document.querySelector('#previewTable tbody');
+        const saveButton = document.getElementById('saveButton');
+        const fileLabel = document.querySelector('.file-label');
+        const uploadSection = document.querySelector('.upload-section');
+        const themeToggleButton = document.getElementById('themeToggleBtn');
+        const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
+        
+        let extractedDataForSaving = [];
+
+        // Helper function to extract only the date portion (YYYY/MM/DD)
+        function getDateOnly(dateString) {
+            if (!dateString) return "";
+            const parts = dateString.split(' ')[0].split('-');
+            if (parts.length === 3) {
+                return `${parts[0]}/${parts[1]}/${parts[2]}`;
+            }
+            return dateString.split(' ')[0];
+        }
+
+        // Function to populate the main table (updated logic)
+        async function loadData() {
+          try {
+            const res = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
+            const data = await res.json();
+
+            dataTableBody.innerHTML = "";
+
+            if (data) {
+              const rows = Object.keys(data).map(key => ({
+                ...data[key],
+                key: key
+              }));
+
+              rows.sort((a, b) => {
+                const dateA = new Date(a.colD);
+                const dateB = new Date(b.colD);
+                return dateB - dateA;
+              });
+
+              rows.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface"; // Added hover effect
+                tr.innerHTML = `
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.colA || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.colB || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.colC || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.colD || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.thunderbirdSent || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.thunderbirdDate || ""}</td>
+                  <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${row.notes || ""}</td>
+                `;
+                dataTableBody.appendChild(tr);
+              });
+            } else {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `<td colspan="7" class="py-3 px-4 text-center text-theme-text-muted dark:text-darkTheme-text-muted">No data found</td>`;
+              dataTableBody.appendChild(tr);
+            }
+          } catch (err) {
+            console.error("Error loading data:", err);
+          }
+        }
+
+        // New: Function to populate the preview table
+        function populatePreviewTable(data) {
+            previewTableBody.innerHTML = '';
+            if (data.length === 0) {
+                const noDataRow = document.createElement('tr');
+                noDataRow.innerHTML = `<td colspan="4" class="py-3 px-4 text-center text-theme-text-muted dark:text-darkTheme-text-muted">No data extracted.</td>`;
+                previewTableBody.appendChild(noDataRow);
+                return;
+            }
+
+            data.forEach(rowData => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface";
+                row.innerHTML = `
+                    <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${rowData['No.'] || ''}</td>
+                    <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${rowData['Subject'] || ''}</td>
+                    <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${rowData['Correspondents'] || ''}</td>
+                    <td class="py-3 px-4 border-b border-theme-border dark:border-darkTheme-border">${rowData['Date'] || ''}</td>
+                `;
+                previewTableBody.appendChild(row);
+            });
+        }
+
+        // New: Helper function to read file as Base64
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // New: Main extraction function
+        async function performExtraction(file) {
+            if (!file) {
+                alert("Please select an image file first or paste a screenshot.");
+                return;
+            }
+
+            extractButton.disabled = true;
+            loadingSpinner.style.display = 'inline-block';
+
+            try {
+                const base64ImageData = await readFileAsBase64(file);
+                const prompt = `Extract all tabular data from this image. The data consists of rows, and each row has four columns: "No.", "Subject", "Correspondents", and "Date".
+                For "No." and "Subject", please parse the first column in the image, where "No." is the leading number and "Subject" is the rest of the text on that line.
+                For "Correspondents", extract the email addresses.
+                For "Date", extract the time or date.
+                Please return the data as a JSON array, where each element is an object with keys "No.", "Subject", "Correspondents", and "Date".
+                Example format:
+                [
+                  {
+                    "No.": "70074023",
+                    "Subject": "[南区納品] 茅ヶ崎市中島3環1棟",
+                    "Correspondents": "sekisan@touei.co.jp, A620@touei.co.jp",
+                    "Date": "10:10"
+                  }
+                ]`;
+
+                const payload = {
+                    contents: [
+                        {
+                            role: "user",
+                            parts: [
+                                { text: prompt },
+                                {
+                                    inlineData: {
+                                        mimeType: file.type,
+                                        data: base64ImageData.split(',')[1]
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "ARRAY",
+                            items: {
+                                type: "OBJECT",
+                                properties: {
+                                    "No.": { "type": "STRING" },
+                                    "Subject": { "type": "STRING" },
+                                    "Correspondents": { "type": "STRING" },
+                                    "Date": { "type": "STRING" }
+                                },
+                                required: ["No.", "Subject", "Correspondents", "Date"]
+                            }
+                        }
+                    }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`API error: ${response.status} ${response.statusText} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                const jsonString = result.candidates[0].content.parts[0].text;
+                const parsedData = JSON.parse(jsonString);
+                
+                // Updated: Filter and clean the extracted data
+                const today = new Date();
+                const year = today.getFullYear();
+                const month = String(today.getMonth() + 1).padStart(2, '0');
+                const day = String(today.getDate()).padStart(2, '0');
+                const todayFormatted = `${year}/${month}/${day}`;
+
+                // First, filter out items that contain "【大工図納品】"
+                let filteredData = parsedData.filter(item => {
+                    return item['Subject'] && !item['Subject'].includes('【大工図納品】');
+                });
+
+                // Then, clean the remaining data
+                let cleanedData = filteredData.map(item => {
+                    // Remove the specific phrase "【雨樋図納品】" from the 'Subject' string and trim whitespace
+                    const newSubject = (item['Subject'] || '').replace('【雨樋図納品】', '').trim();
+
+                    // Check if the date string contains only time (HH:MM or H:MM) and prepend today's date
+                    const newDate = (/^\d{1,2}:\d{2}$/.test(item['Date'])) ? `${todayFormatted} ${item['Date']}` : item['Date'];
+
+                    return { 
+                        'No.': item['No.'] || '',
+                        'Subject': newSubject,
+                        'Correspondents': item['Correspondents'] || '',
+                        'Date': newDate
+                    };
+                });
+
+                extractedDataForSaving = cleanedData;
+                populatePreviewTable(extractedDataForSaving);
+                previewSection.style.display = 'block';
+                saveButton.disabled = false;
+                alert(`Successfully extracted ${cleanedData.length} rows. Review the preview and click 'Save to Database'.`);
+
+            } catch (error) {
+                console.error("Error extracting text:", error);
+                alert(`Extraction failed: ${error.message}`);
+                extractedDataForSaving = [];
+                previewSection.style.display = 'none';
+            } finally {
+                extractButton.disabled = false;
+                loadingSpinner.style.display = 'none';
+            }
+        }
+
+        // Updated: Function to save data to Firebase Realtime Database
+        async function saveData() {
+            if (extractedDataForSaving.length === 0) {
+                alert("No data to save.");
+                return;
+            }
+
+            saveButton.disabled = true;
+
+            try {
+                // Fetch existing data to compare project numbers
+                const existingRes = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
+                const existingData = await existingRes.json() || {};
+                const existingProjectsMap = new Map();
+
+                // Create a map for quick lookup by project number
+                for (const key in existingData) {
+                    if (existingData[key].colA) {
+                        existingProjectsMap.set(existingData[key].colA, key);
+                    }
+                }
+
+                const updates = {};
+                const newUpdatesForRevision = {};
+                const newEntries = [];
+                
+                extractedDataForSaving.forEach(item => {
+                    const projectNumber = item['No.'];
+                    const existingKey = existingProjectsMap.get(projectNumber);
+                    
+                    // Check if the extracted subject contains "修正"
+                    const hasRevision = item['Subject'] && item['Subject'].includes('修正');
+
+                    if (hasRevision) {
+                        const dateOnly = getDateOnly(item['Date']);
+                        if (existingKey) {
+                            // It's a duplicate and has "修正", so update the existing record
+                            updates[`${existingKey}/thunderbirdSent`] = '✅';
+                            updates[`${existingKey}/thunderbirdDate`] = item['Date'];
+                            updates[`${existingKey}/notes`] = 'CHECKBACK';
+                            updates[`${existingKey}/colD`] = dateOnly;
+                        } else {
+                            // It's a new entry and has "修正", so prepare to add it with project number as the key
+                            const firebaseFormat = {
+                                colA: item['No.'],
+                                colB: item['Subject'],
+                                colC: '', // Do not populate Building No.
+                                colD: dateOnly,
+                                thunderbirdSent: '✅',
+                                thunderbirdDate: item['Date'],
+                                notes: 'CHECKBACK'
+                            };
+                            newUpdatesForRevision[projectNumber] = firebaseFormat;
+                        }
+                    } else {
+                        // Regular entry, no "修正"
+                        if (existingKey) {
+                            // It's a duplicate, so update the existing record as before
+                            updates[`${existingKey}/thunderbirdSent`] = '✅';
+                            updates[`${existingKey}/thunderbirdDate`] = item['Date'];
+                        } else {
+                            // It's a new entry, so prepare to add it as before
+                            const firebaseFormat = {
+                                colA: item['No.'],
+                                colB: item['Subject'],
+                                colC: item['Correspondents'],
+                                colD: item['Date'],
+                                notes: ""
+                            };
+                            newEntries.push(firebaseFormat);
+                        }
+                    }
+                });
+
+                // Perform the updates for existing records
+                if (Object.keys(updates).length > 0) {
+                    await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(updates)
+                    });
+                    alert(`Successfully updated ${Object.keys(updates).length} existing rows!`);
+                }
+
+                // Save new entries with "修正" to Firebase using project number as key
+                if (Object.keys(newUpdatesForRevision).length > 0) {
+                     await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(newUpdatesForRevision)
+                    });
+                    alert(`Successfully saved ${Object.keys(newUpdatesForRevision).length} new revision rows to the database!`);
+                }
+                
+                // Save other new entries to Firebase
+                if (newEntries.length > 0) {
+                    const newUpdates = {};
+                    newEntries.forEach(entry => {
+                        const newId = Date.now().toString() + Math.random().toString(36).substring(2, 8);
+                        newUpdates[newId] = entry;
+                    });
+                    await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(newUpdates)
+                    });
+                    alert(`Successfully saved ${newEntries.length} new rows to the database!`);
+                } else if (Object.keys(updates).length === 0 && Object.keys(newUpdatesForRevision).length === 0) {
+                     alert("No new or duplicate data was found. Nothing was saved or updated.");
+                }
+
+                // Reload the main table after saving
+                loadData();
+                // Clear preview
+                extractedDataForSaving = [];
+                previewSection.style.display = 'none';
+
+            } catch (error) {
+                console.error("Error saving data:", error);
+                alert(`Failed to save data: ${error.message}`);
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+        
+        // --- New: Paste from clipboard functionality ---
+        document.addEventListener('paste', (event) => {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            let file = null;
+
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    file = item.getAsFile();
+                    break;
+                }
+            }
+            
+            if (file) {
+                // Clear any previously selected file from the input
+                imageInput.value = ''; 
+                performExtraction(file);
+            }
+        });
+
+        // Event listeners for the new buttons
+        extractButton.addEventListener('click', () => performExtraction(imageInput.files[0]));
+        saveButton.addEventListener('click', saveData);
+
+        // Event listeners for drag-and-drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('border-theme-accent');
+        });
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('border-theme-accent');
+        });
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('border-theme-accent');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                imageInput.files = e.dataTransfer.files;
+                performExtraction(file);
+            } else {
+                alert('Please drop an image file.');
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                fileLabel.textContent = file.name;
+            } else {
+                fileLabel.textContent = 'Choose Image';
+            }
+        });
+        
+        // Function to handle theme toggling
+        function applyTheme(theme) {
+            htmlElement.classList.remove('light', 'dark');
+            htmlElement.classList.add(theme);
+            localStorage.setItem('tcdRaingutterTheme', theme);
+
+            // Update theme toggle icon visibility
+            const moonIcons = document.querySelectorAll('.icon-moon');
+            const sunIcons = document.querySelectorAll('.icon-sun');
+            
+            moonIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'none' : 'block';
+            });
+            
+            sunIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'block' : 'none';
+            });
+        }
+
+        // Toggles between light and dark theme
+        function toggleTheme() {
+            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+        
+        // Refresh button functionality
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('animate-spin');
+            setTimeout(() => {
+                icon.classList.remove('animate-spin');
+                window.location.reload();
+            }, 500);
+        });
+
+        // Close window button with confirmation
+        document.getElementById('closeWindowBtn').addEventListener('click', function() {
+            if (confirm('Are you sure you want to close this window?')) {
+                try {
+                    window.close();
+                    if (!window.closed) {
+                        alert('This window cannot be closed programmatically. Please close it manually.');
+                    }
+                } catch (error) {
+                    alert('An error occurred while trying to close the window: ' + error.message);
+                }
+            }
+        });
+        
+        // Event listeners for theme toggles
+        themeToggleButton.addEventListener('click', toggleTheme);
+        themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme based on localStorage or system preference
+            const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
+                                 (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(preferredTheme);
+            
+            // Load on page start
+            loadData();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,95 @@
+/* Custom CSS for scrollbars and animations (TCD Raingutter style) */
+:root {
+    --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+    --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5);
+}
+html.dark { /* Styles applied when the 'dark' class is present on the <html> tag */
+    --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+    --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5);
+}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+body { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+/* Animation for loading spinner (used for processing state) */
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Custom transition timing function for smooth UI changes */
+.ease-custom-ease { transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+
+/* Specific style for drag-over state on drop area */
+#drop-area.dragover-active { 
+    border-color: rgb(var(--theme-accent-rgb)) !important; /* Use RGB values from Tailwind config */
+    background-color: rgba(var(--theme-accent-rgb), 0.1) !important; 
+}
+
+/* Image Preview Styling */
+.image-preview {
+    width: 100px;
+    height: 100px;
+    border: 1px solid var(--theme-border); /* Use Tailwind defined border color */
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: var(--theme-background); /* Matches TCD Raingutter's light background for previews */
+}
+
+html.dark .image-preview { /* Dark mode adjustments for image preview */
+    border-color: var(--darkTheme-border);
+    background-color: var(--darkTheme-background);
+}
+
+.image-preview img {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    object-fit: contain;
+}
+
+/* Extracted Numbers List Item Styling */
+.numbers-list li {
+    padding: 12px 16px; /* Increased padding for better readability */
+    border-bottom: 1px solid var(--theme-border); /* Subtle border for list items */
+    font-size: 1em; /* Adjusted font size */
+    color: var(--theme-text-primary);
+    transition: background-color 0.2s ease-custom-ease;
+}
+
+html.dark .numbers-list li {
+    border-color: var(--darkTheme-border);
+    color: var(--darkTheme-text-primary);
+}
+
+.numbers-list li:last-child {
+    border-bottom: none; /* No border for the last item */
+}
+
+/* Specific styles for messages within the list */
+.numbers-list li.no-numbers,
+.numbers-list li.error-item {
+    text-align: center;
+    color: var(--theme-text-muted); /* Muted text color for messages */
+    font-style: italic;
+    padding: 16px; /* More padding for messages */
+}
+
+html.dark .numbers-list li.no-numbers,
+html.dark .numbers-list li.error-item {
+    color: var(--darkTheme-text-muted);
+}
+
+/* Message Box (Toast Notification) Styling */
+#app-message {
+    /* Styles are primarily handled by Tailwind classes in HTML for consistency */
+    /* Added here for reference if custom adjustments are needed */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15); /* Slightly stronger shadow for toast */
+}
+
+html.dark #app-message {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4); /* Darker shadow for dark mode toast */
+}

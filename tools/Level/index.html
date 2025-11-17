@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LEVEL & HEIGHT | Rain Gutter Department</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        // Tailwind CSS Configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           'text-primary': 'rgb(5, 5, 5)',
+                           'text-muted': 'rgb(107, 114, 128)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '5, 5, 5',
+                        },
+                        darkTheme: {
+                           background: 'rgb(20, 20, 20)',
+                           surface: 'rgb(30, 30, 30)',
+                           border: 'rgb(50, 50, 50)',
+                           'text-primary': 'rgb(240, 240, 240)',
+                           'text-muted': 'rgb(150, 150, 150)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '240, 240, 240',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+                        'subtle-dark': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.18)',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom CSS for scrollbars and animations */
+        :root {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+            --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5);
+        }
+        html.dark {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+            --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5);
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+        body { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+        /* Animation for loading spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+            animation: spin 0.5s linear infinite;
+        }
+
+        /* Message box custom styling */
+        .message-box {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+        }
+        
+        /* Custom glow effect */
+        .glow-border {
+            box-shadow: 0 0 10px rgba(0, 122, 255, 0.3), 0 0 20px rgba(0, 122, 255, 0.2);
+            border-radius: 0.5rem;
+        }
+        .dark .glow-border {
+            box-shadow: 0 0 10px rgba(0, 122, 255, 0.4), 0 0 20px rgba(0, 122, 255, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary antialiased min-h-screen flex flex-col items-center justify-center p-4 transition-colors duration-300 ease-custom-ease font-sans">
+    
+    <div class="w-full max-w-4xl mx-auto px-4 sm:px-6 bg-theme-background dark:bg-darkTheme-background rounded-lg shadow-lg border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+        
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-6 md:mb-8 py-4">
+            <div class="flex justify-between items-center w-full z-10">
+                <div class="flex items-center gap-2">
+                    <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-arrow-clockwise text-lg"></i>
+                    </button>
+                    <button id="closeWindowBtn" aria-label="Close window" title="Close Window" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+                <div class="hidden sm:block z-10">
+                    <button id="themeToggleBtnDesktop" aria-label="Toggle theme" title="Toggle Theme" 
+                            class="p-2 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                        <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="w-full sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 text-center">
+                <h1 class="text-xl sm:text-2xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-1">☔ RAIN GUTTER DEPT TOOLS</h1>
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs">LEVEL & HEIGHT CALCULATOR</p>
+            </div>
+        </header>
+        
+        <div class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-6 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+            <h2 class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-4">Calculate Missing Level</h2>
+            
+            <div class="flex justify-center mb-8">
+                <img src="IDHOME LEVEL.png" alt="Diagram showing Points A, B, and C with total length and B-C length." class="glow-border">
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div>
+                    <label for="pointA" class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">POINT A (LOWEST LEVEL VALUE)</label>
+                    <div class="relative">
+                        <input type="number" id="pointA" placeholder="e.g., 300" class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease" required>
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">mm</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="pointC" class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">POINT C (HIGHER LEVEL)</label>
+                    <div class="relative">
+                        <input type="number" id="pointC" placeholder="e.g., 0" class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease" required>
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">mm</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="totalLength" class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">TOTAL LENGTH (A TO C)</label>
+                    <div class="relative">
+                        <input type="number" id="totalLength" placeholder="e.g., 2275" class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease" required>
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">mm</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label for="lengthBC" class="block text-sm font-medium text-theme-text-muted dark:text-darkTheme-text-muted mb-1">LENGTH FROM B TO C</label>
+                    <div class="relative">
+                        <input type="number" id="lengthBC" placeholder="e.g., 455" class="w-full px-4 py-2 bg-theme-background dark:bg-darkTheme-background border border-theme-border dark:border-darkTheme-border rounded-md text-theme-text-primary dark:text-darkTheme-text-primary focus:ring-2 focus:ring-theme-accent focus:border-transparent transition-all duration-200 ease-custom-ease" required>
+                        <span class="absolute right-3 top-1/2 -translate-y-1/2 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">mm</span>
+                    </div>
+                </div>
+            </div>
+
+            <button id="calculateButton" 
+                    class="w-full px-4 py-3 bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast rounded-md font-semibold text-base hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-all duration-200 ease-custom-ease shadow-md">
+                CALCULATE MISSING LEVEL
+            </button>
+        </div>
+        
+        <div id="resultCard" class="bg-theme-surface dark:bg-darkTheme-surface p-6 rounded-lg shadow-subtle dark:shadow-subtle-dark border border-theme-success dark:border-darkTheme-success hidden opacity-0 transition-all duration-300 ease-custom-ease transform translate-y-5">
+            <h3 class="text-lg font-semibold text-theme-success dark:text-darkTheme-success mb-4 flex items-center">
+                <i class="bi bi-check-circle-fill mr-2"></i> [ SUCCESS ]
+            </h3>
+            <div class="text-4xl font-bold text-theme-success dark:text-darkTheme-success mb-4" id="resultDisplay"></div>
+            
+            <div class="flex justify-center mb-6">
+                <canvas id="diagramCanvas" width="400" height="200" class="border border-theme-border dark:border-darkTheme-border rounded-md"></canvas>
+            </div>
+
+            <div class="mt-6 p-3 bg-theme-background dark:bg-darkTheme-background border-l-4 border-theme-accent rounded-md">
+                <p class="text-xs font-medium text-theme-accent dark:text-darkTheme-accent mb-1">Calculation Method</p>
+                <p class="text-sm text-theme-text-primary dark:text-darkTheme-text-primary leading-relaxed" id="formula"></p>
+            </div>
+        </div>
+
+        <div id="messageBox" class="message-box"></div>
+        
+        <footer class="text-center mt-8 text-theme-text-muted dark:text-darkTheme-text-muted text-xs">
+            © 2025 LEVEL & HEIGHT | Rain Gutter Department
+        </footer>
+    </div>
+
+    <script>
+        // Get DOM elements
+        const htmlElement = document.documentElement;
+        const pointAInput = document.getElementById('pointA');
+        const pointCInput = document.getElementById('pointC');
+        const totalLengthInput = document.getElementById('totalLength');
+        const lengthBCInput = document.getElementById('lengthBC');
+        const calculateButton = document.getElementById('calculateButton');
+        const resultCard = document.getElementById('resultCard');
+        const resultDisplay = document.getElementById('resultDisplay');
+        const formulaText = document.getElementById('formula');
+        const messageBox = document.getElementById('messageBox');
+        const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
+        const canvas = document.getElementById('diagramCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Function to show a message box (error or success)
+        function showMessageBox(message, type = 'error') {
+            messageBox.textContent = message;
+            messageBox.style.display = 'block';
+            if (type === 'error') {
+                messageBox.className = 'message-box bg-theme-error dark:bg-darkTheme-error text-white';
+            } else {
+                messageBox.className = 'message-box bg-theme-success dark:bg-darkTheme-success text-white';
+            }
+            setTimeout(() => {
+                messageBox.classList.add('opacity-100');
+            }, 10);
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100');
+                setTimeout(() => messageBox.style.display = 'none', 300);
+            }, 3000);
+        }
+
+        /**
+         * Clears the canvas and resets drawing properties.
+         */
+        function clearCanvas() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.font = '14px Sora, sans-serif'; // Increased font size
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+        }
+
+        /**
+         * Draws the full diagram based on the calculated values.
+         */
+        function drawDiagram(pointA, pointB, pointC, totalLength, lengthBC) {
+            clearCanvas();
+            
+            // Define colors from the theme
+            const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent');
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-text-primary');
+
+            // Set up padding and scaling
+            const padding = 30; // Increased padding
+            const xA = padding;
+            const xC = canvas.width - padding;
+            const xB = xA + (totalLength - lengthBC) * (xC - xA) / totalLength;
+
+            const allPoints = [pointA, pointB, pointC].filter(p => !isNaN(p));
+            if (allPoints.length === 0) return; // Don't draw if no valid points
+
+            const maxLevel = Math.max(...allPoints);
+            const minLevel = Math.min(...allPoints);
+            const totalVerticalChange = maxLevel - minLevel;
+            const scaleY = (canvas.height - padding * 2) / (totalVerticalChange === 0 ? 1 : totalVerticalChange);
+
+            // Calculate y-coordinates (inverted for canvas, lower levels have higher y values)
+            const yA = canvas.height - padding - (pointA - minLevel) * scaleY;
+            const yC = canvas.height - padding - (pointC - minLevel) * scaleY;
+            const yB = canvas.height - padding - (pointB - minLevel) * scaleY;
+
+            // --- Drawing lines ---
+            ctx.lineWidth = 2;
+            
+            // Draw the sloped line A-C
+            ctx.strokeStyle = textColor;
+            ctx.beginPath();
+            ctx.moveTo(xA, yA);
+            ctx.lineTo(xC, yC);
+            ctx.stroke();
+
+            // Draw the vertical lines at A, B, and C
+            ctx.setLineDash([5, 5]); // Dashed lines for vertical height
+            ctx.strokeStyle = textColor;
+            ctx.beginPath();
+            ctx.moveTo(xA, yA);
+            ctx.lineTo(xA, canvas.height - padding);
+            ctx.moveTo(xB, yB);
+            ctx.lineTo(xB, canvas.height - padding);
+            ctx.moveTo(xC, yC);
+            ctx.lineTo(xC, canvas.height - padding);
+            ctx.stroke();
+            ctx.setLineDash([]); // Reset line dash
+
+            // --- Drawing labels ---
+            ctx.fillStyle = textColor;
+            ctx.textAlign = 'center';
+
+            // Labels for points and levels (A, B, C)
+            ctx.font = '16px Sora, sans-serif';
+            ctx.fillText(`A`, xA, yA - 10);
+            ctx.fillText(`${pointA.toFixed(0)}mm`, xA, yA + 20);
+            
+            ctx.fillText(`B`, xB, yB - 10);
+            ctx.fillText(`${pointB.toFixed(3)}mm`, xB, yB + 20);
+            
+            ctx.fillText(`C`, xC, yC - 10);
+            ctx.fillText(`${pointC.toFixed(0)}mm`, xC, yC + 20);
+
+            // Dimension lines and labels for length
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            
+            // TOTAL LENGTH (red)
+            ctx.strokeStyle = 'rgb(220, 53, 69)';
+            ctx.moveTo(xA, padding);
+            ctx.lineTo(xC, padding);
+            ctx.stroke();
+            ctx.fillStyle = 'rgb(220, 53, 69)';
+            ctx.font = '14px Sora, sans-serif';
+            ctx.fillText(`TOTAL LENGTH: ${totalLength.toFixed(0)}mm`, (xA + xC) / 2, padding - 10);
+            
+            // B-C (blue)
+            ctx.strokeStyle = 'rgb(0, 122, 255)';
+            ctx.moveTo(xB, padding + 20);
+            ctx.lineTo(xC, padding + 20);
+            ctx.stroke();
+            ctx.fillStyle = 'rgb(0, 122, 255)';
+            ctx.fillText(`B - C: ${lengthBC.toFixed(0)}mm`, (xB + xC) / 2, padding + 10);
+        }
+
+        // Function to perform the calculation
+        function calculateMissingLevel() {
+            // Parse input values as numbers
+            const pointA = parseFloat(pointAInput.value);
+            const pointC = parseFloat(pointCInput.value);
+            const totalLength = parseFloat(totalLengthInput.value);
+            const lengthBC = parseFloat(lengthBCInput.value);
+
+            // Validate inputs
+            if (isNaN(pointA) || isNaN(pointC) || isNaN(totalLength) || isNaN(lengthBC)) {
+                showMessageBox('Please fill in all fields with valid numbers.', 'error');
+                hideResultCard();
+                return;
+            }
+            if (totalLength <= 0 || lengthBC <= 0) {
+                showMessageBox('Total Length and Length from B to C must be positive values.', 'error');
+                hideResultCard();
+                return;
+            }
+            if (lengthBC > totalLength) {
+                showMessageBox('Length from B to C cannot be greater than the Total Length.', 'error');
+                hideResultCard();
+                return;
+            }
+
+            // Calculate the length from Point A to Point B
+            const lengthAB = totalLength - lengthBC;
+
+            // Calculate the total rise/fall between Point A and Point C
+            const totalChange = pointC - pointA;
+
+            // Calculate the proportion of the total length that is A to B
+            const proportion = lengthAB / totalLength;
+
+            // Calculate the change in level from A to B
+            const changeAB = totalChange * proportion;
+
+            // Calculate the missing level at Point B
+            const pointB = pointA + changeAB;
+
+            // Display the result
+            resultDisplay.textContent = `${pointB.toFixed(3)} mm`;
+            formulaText.textContent = `Point B = Point A + ((Total Length - Length B-C) / Total Length) * (Point C - Point A)`;
+            
+            drawDiagram(pointA, pointB, pointC, totalLength, lengthBC);
+
+            showResultCard();
+        }
+
+        /**
+         * Shows the result card with animation
+         */
+        function showResultCard() {
+            resultCard.style.display = 'block';
+            setTimeout(() => {
+                resultCard.classList.remove('opacity-0', 'translate-y-5');
+                resultCard.classList.add('opacity-100', 'translate-y-0');
+            }, 10);
+        }
+
+        /**
+         * Hides the result card with animation
+         */
+        function hideResultCard() {
+            resultCard.classList.remove('opacity-100', 'translate-y-0');
+            resultCard.classList.add('opacity-0', 'translate-y-5');
+            setTimeout(() => resultCard.style.display = 'none', 300);
+        }
+
+        /**
+         * Applies the specified theme (light or dark) to the HTML document.
+         * Stores the preference in localStorage.
+         * @param {string} theme - 'light' or 'dark'.
+         */
+        function applyTheme(theme) {
+            htmlElement.classList.remove('light', 'dark');
+            htmlElement.classList.add(theme);
+            localStorage.setItem('tcdRaingutterTheme', theme);
+
+            // Update theme toggle icon visibility
+            const moonIcons = document.querySelectorAll('.icon-moon');
+            const sunIcons = document.querySelectorAll('.icon-sun');
+            
+            moonIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'none' : 'block';
+            });
+            
+            sunIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'block' : 'none';
+            });
+
+            // Re-draw the canvas with the new theme colors if it's visible
+            if (resultCard.style.display !== 'none' && !isNaN(parseFloat(pointAInput.value))) {
+                const pointA = parseFloat(pointAInput.value);
+                const pointC = parseFloat(pointCInput.value);
+                const totalLength = parseFloat(totalLengthInput.value);
+                const lengthBC = parseFloat(lengthBCInput.value);
+                const lengthAB = totalLength - lengthBC;
+                const totalChange = pointC - pointA;
+                const proportion = lengthAB / totalLength;
+                const changeAB = totalChange * proportion;
+                const pointB = pointA + changeAB;
+                drawDiagram(pointA, pointB, pointC, totalLength, lengthBC);
+            }
+        }
+
+        /**
+         * Toggles between light and dark theme
+         */
+        function toggleTheme() {
+            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+
+        // Event Listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize theme based on localStorage or system preference
+            const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
+                                 (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(preferredTheme);
+
+            // Calculator button and input listeners
+            calculateButton.addEventListener('click', calculateMissingLevel);
+            pointAInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateMissingLevel(); });
+            pointCInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateMissingLevel(); });
+            totalLengthInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateMissingLevel(); });
+            lengthBCInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateMissingLevel(); });
+
+            // Theme toggle listener
+            themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+
+            // Refresh button functionality
+            document.getElementById('refreshBtn').addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                icon.classList.add('animate-spin');
+                setTimeout(() => {
+                    icon.classList.remove('animate-spin');
+                    window.location.reload();
+                }, 500);
+            });
+
+            // Close window button with confirmation
+            document.getElementById('closeWindowBtn').addEventListener('click', function() {
+                 if (confirm('Are you sure you want to close this window?')) {
+                    try {
+                        window.close();
+                        if (!window.closed) {
+                            alert('This window cannot be closed programmatically. Please close it manually.');
+                        }
+                    } catch (error) {
+                        alert('An error occurred while trying to close the window: ' + error.message);
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,158 @@
+:root {
+    --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+    --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5); /* Darker gray for hover */
+}
+
+html.dark {
+    --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+    --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5); /* Lighter gray for hover */
+}
+
+html {
+  zoom: 0.8; /* Or zoom: 80%; */
+}
+
+
+
+
+#resultsContainer::-webkit-scrollbar { width: 8px; height: 8px; }
+#resultsContainer::-webkit-scrollbar-track { background: transparent; }
+#resultsContainer::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+#resultsContainer::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+#resultsContainer { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+.animate-spin { animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+#imageCanvasContainer.dragover-active { border-color: rgb(var(--theme-accent-rgb)) !important; background-color: rgba(var(--theme-accent-rgb), 0.1) !important; }
+
+.spinner-border { display: inline-block; vertical-align: text-bottom; border: .25em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: .75s linear infinite spinner-border; }
+@keyframes spinner-border { to { transform: rotate(360deg); } }
+
+#clockToggleButton { transition: width 0.3s ease-in-out, background-color 0.2s ease-in-out, color 0.2s ease-in-out; }
+#clockIcon, #clockTimeText { transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out; }
+
+.category-button { transition: color 0.2s ease-in-out, font-weight 0.2s ease-in-out; }
+#imageCanvasContainer { transition: opacity 0.15s ease-in-out, border-color 0.2s ease-in-out, background-color 0.2s ease-in-out; }
+
+.loaded-dot { display: inline-block; width: 5px; height: 5px; border-radius: 50%; background-color: rgb(var(--theme-text-primary-rgb)); margin-left: 8px; vertical-align: middle; }
+
+/* ========================================================================
+   SAVE SYSTEM STYLES
+   ======================================================================== */
+
+/* Save for Later Button */
+#saveForLaterButton {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9));
+    border: 2px solid transparent;
+    transition: all 0.3s ease;
+}
+
+#saveForLaterButton:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* Save Results Toggle Button Styles */
+#saveResultsToggleBtn {
+    right: 0;
+    transition: transform 0.3s ease-in-out, border-radius 0.3s ease-in-out;
+}
+
+#saveResultsToggleBtn:hover:not(.showing-container) {
+    transform: translateY(-50%) scale(1.05);
+}
+
+#saveResultsToggleBtn.showing-container {
+    transform: translate(-100%, -50%);
+}
+
+#saveResultsToggleBtn.showing-container:hover {
+    transform: translate(-100%, -50%) scale(1.05);
+}
+
+/* Badge for save count */
+.save-count-badge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    background: #ef4444;
+    color: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid;
+    border-color: inherit;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* Save Result Box Animations */
+@keyframes saveBoxSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.save-result-box {
+    animation: saveBoxSlideIn 0.3s ease-out;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* Save Result Box Hover Effects */
+.save-info-box:hover, .save-image-box:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Save Status Message Animation */
+@keyframes statusMessageSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+#saveStatusMessage:not(.hidden) {
+    animation: statusMessageSlide 0.3s ease-out;
+}
+
+/* Scrollbar styling for save boxes */
+.save-result-box::-webkit-scrollbar {
+    width: 6px;
+}
+
+.save-result-box::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+}
+
+.save-result-box::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 3px;
+}
+
+.save-result-box::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.5);
+}
+
