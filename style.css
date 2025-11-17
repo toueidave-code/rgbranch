@@ -41,16 +41,10 @@ html {
    SAVE SYSTEM STYLES
    ======================================================================== */
 
-/* Save for Later Button */
+/* Save for Later Button - Inverted Design */
 #saveForLaterButton {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(147, 51, 234, 0.9));
-    border: 2px solid transparent;
-    transition: all 0.3s ease;
-}
-
-#saveForLaterButton:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+    /* Inverted design: transparent background with accent border */
+    /* Styling is now handled by Tailwind classes in HTML */
 }
 
 /* Save Results Toggle Button Styles */
