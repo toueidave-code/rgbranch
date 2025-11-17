@@ -1436,6 +1436,14 @@ async function handlePdfData(data, fileName) {
                 resultsPlaceholder.style.display = 'flex';
                 finishButton.innerHTML = finishButtonOriginalHTMLArgument;
                 updateFinishButtonState();
+
+                // Smooth scroll to results section even when no content
+                setTimeout(() => {
+                    resultsContainer.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }, 100);
                 return;
             }
 
@@ -1601,6 +1609,14 @@ async function handlePdfData(data, fileName) {
 
             finishButton.innerHTML = finishButtonOriginalHTMLArgument;
             updateFinishButtonState();
+
+            // Smooth scroll to compiled results
+            setTimeout(() => {
+                resultsContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
         }, 50);
     }
 
