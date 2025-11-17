@@ -46,6 +46,8 @@ if (window.pdfjsLib) {
     const saveResultsContainer = document.getElementById('saveResultsContainer');
     const saveResultsToggleBtn = document.getElementById('saveResultsToggleBtn');
     const saveCountBadge = document.getElementById('saveCountBadge');
+    const snowToggleBtn = document.getElementById('snowToggleBtn');
+    const snowContainer = document.getElementById('snowContainer');
 
     // Hamburger Menu Elements
     const hamburgerButton = document.getElementById('hamburgerButton');
@@ -71,6 +73,11 @@ if (window.pdfjsLib) {
     let isClockActive = false;
     let isPanning = false;
     let lastPanX, lastPanY;
+
+    // Snow Effect Variables
+    let isSnowActive = false;
+    let snowflakes = [];
+    let snowAnimationId = null;
 
     // Save System Global Variables
     let saveResults = []; // Array to track multiple save results
@@ -2063,6 +2070,10 @@ async function handlePdfData(data, fileName) {
             });
         }
 
+        if (snowToggleBtn) {
+            snowToggleBtn.addEventListener('click', toggleSnow);
+        }
+
         if (clockToggleButton && clockTimeText && clockIcon) {
             clockToggleButton.addEventListener('click', () => {
                 isClockActive = !isClockActive;
@@ -2109,6 +2120,101 @@ async function handlePdfData(data, fileName) {
         const M = String(date.getMonth() + 1).padStart(2, '0'); const D = String(date.getDate()).padStart(2, '0'); const Y = date.getFullYear();
         const h = String(date.getHours()).padStart(2, '0'); const m = String(date.getMinutes()).padStart(2, '0'); const s = String(date.getSeconds()).padStart(2, '0');
         return `${M}/${D}/${Y} ${h}:${m}:${s}`;
+    }
+
+    // Snow Effect Functions
+    function createSnowflake() {
+        const snowflake = document.createElement('div');
+        snowflake.className = 'snowflake';
+        snowflake.innerHTML = '❄';
+        snowflake.style.position = 'fixed';
+        snowflake.style.top = '-10px';
+        snowflake.style.left = Math.random() * window.innerWidth + 'px';
+
+        // Always white fill with gray outline for visibility on all backgrounds
+        snowflake.style.color = '#ffffff';
+        snowflake.style.textShadow = '0 0 2px rgba(128, 128, 128, 0.8), 0 0 4px rgba(128, 128, 128, 0.4)';
+
+        snowflake.style.fontSize = (Math.random() * 10 + 10) + 'px';
+        snowflake.style.opacity = Math.random() * 0.8 + 0.2;
+        snowflake.style.pointerEvents = 'none';
+        snowflake.style.zIndex = '-1';
+        snowflake.style.transition = 'none';
+        return snowflake;
+    }
+
+    function animateSnowfall() {
+        snowContainer.innerHTML = '';
+        snowflakes = [];
+
+        // Create initial snowflakes
+        for (let i = 0; i < 50; i++) {
+            const snowflake = createSnowflake();
+            snowflake.style.top = Math.random() * window.innerHeight + 'px';
+            snowflakes.push({
+                element: snowflake,
+                x: parseFloat(snowflake.style.left),
+                y: parseFloat(snowflake.style.top),
+                speed: Math.random() * 2 + 1,
+                drift: Math.random() * 1 - 0.5,
+                size: parseFloat(snowflake.style.fontSize)
+            });
+            snowContainer.appendChild(snowflake);
+        }
+
+        function animate() {
+            snowflakes.forEach((snowflake, index) => {
+                snowflake.y += snowflake.speed;
+                snowflake.x += snowflake.drift + Math.sin(snowflake.y * 0.01) * 0.5;
+
+                // Reset snowflake if it goes off screen
+                if (snowflake.y > window.innerHeight) {
+                    snowflake.y = -10;
+                    snowflake.x = Math.random() * window.innerWidth;
+                }
+
+                if (snowflake.x > window.innerWidth) {
+                    snowflake.x = 0;
+                } else if (snowflake.x < 0) {
+                    snowflake.x = window.innerWidth;
+                }
+
+                snowflake.element.style.top = snowflake.y + 'px';
+                snowflake.element.style.left = snowflake.x + 'px';
+            });
+
+            if (isSnowActive) {
+                snowAnimationId = requestAnimationFrame(animate);
+            }
+        }
+
+        animate();
+    }
+
+    
+    function toggleSnow() {
+        isSnowActive = !isSnowActive;
+
+        if (isSnowActive) {
+            snowContainer.classList.remove('hidden');
+            animateSnowfall();
+            if (snowToggleBtn) {
+                snowToggleBtn.classList.add('text-blue-500');
+                snowToggleBtn.classList.remove('text-theme-text-muted', 'dark:text-darkTheme-text-muted');
+            }
+        } else {
+            snowContainer.classList.add('hidden');
+            if (snowAnimationId) {
+                cancelAnimationFrame(snowAnimationId);
+                snowAnimationId = null;
+            }
+            snowContainer.innerHTML = '';
+            snowflakes = [];
+            if (snowToggleBtn) {
+                snowToggleBtn.classList.remove('text-blue-500');
+                snowToggleBtn.classList.add('text-theme-text-muted', 'dark:text-darkTheme-text-muted');
+            }
+        }
     }
 
     function updateClock() { if (clockTimeText) clockTimeText.textContent = formatDateTime(new Date()); }
