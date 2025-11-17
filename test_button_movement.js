@@ -33,13 +33,14 @@ console.log('Container is hidden:', container ? container.classList.contains('hi
 
 console.log('\n=== Manual Testing Instructions ===');
 console.log('1. Upload an image to the 3D category');
-console.log('2. Click the save button to show save results container (with no rectangles)');
+console.log('2. Click the save button to show save results container (with no rectangles/saves)');
 console.log('3. Observe button shakes UP AND DOWN at original position (no movement)');
 console.log('4. Draw some rectangles in 3D category');
 console.log('5. Button should stop shaking and move to left edge of container based on content');
 console.log('6. Add more rectangles - button should move further left');
-console.log('7. Hide container - button should return to original position');
-console.log('8. Delete all rectangles and show container again - button should shake at original position');
+console.log('7. Save some results - button should move further left based on saved content');
+console.log('8. Hide container - button should return to original position');
+console.log('9. Delete all rectangles and saved results - button should shake at original position');
 
 // Test 6: Create test rectangles if 3D category exists
 if (typeof appState !== 'undefined' && appState['3D']) {
@@ -71,14 +72,29 @@ if (typeof appState !== 'undefined' && appState['3D']) {
 }
 
 // Test shake animation
-console.log('\n=== Test 8: Shake Animation Testing ===');
+// Test 8: Saved results content calculation
+console.log('\n=== Test 8: Saved Results Content Testing ===');
+console.log('calculateSavedResultsContentWidth:', typeof calculateSavedResultsContentWidth);
+console.log('calculateTotalMovementPercentage:', typeof calculateTotalMovementPercentage);
+
+if (typeof calculateSavedResultsContentWidth === 'function' && typeof calculateTotalMovementPercentage === 'function') {
+    const savedResultsWidth = calculateSavedResultsContentWidth();
+    const totalMovement = calculateTotalMovementPercentage();
+    console.log('Saved results content width:', savedResultsWidth);
+    console.log('Total movement percentage:', totalMovement);
+    console.log('Number of saved results:', typeof saveResults !== 'undefined' ? saveResults.length : 'saveResults not defined');
+}
+
+// Test 9: Shake Animation Testing
+console.log('\n=== Test 9: Shake Animation Testing ===');
 const testButton = document.getElementById('saveResultsToggleBtn');
 console.log('Button has shake-empty class:', testButton ? testButton.classList.contains('shake-empty') : 'N/A');
 
 if (testButton && typeof updateButtonPositionBasedOnContent === 'function') {
     console.log('To test shake animation manually:');
-    console.log('1. Clear all rectangles from 3D category');
+    console.log('1. Clear all rectangles and saved results');
     console.log('2. Show save results container');
     console.log('3. Button should shake UP AND DOWN at original position for 0.8 seconds');
     console.log('4. Button should NOT move horizontally when empty');
+    console.log('5. Add saved results - button should move based on content width');
 }

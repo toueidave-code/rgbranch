@@ -303,6 +303,11 @@ if (window.pdfjsLib) {
 
         // Update save count badge
         updateSaveCountBadge();
+
+        // Update button position if save results container is visible
+        if (saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+            updateButtonPositionBasedOnContent();
+        }
     }
 
     // Update existing save result
@@ -486,6 +491,11 @@ if (window.pdfjsLib) {
                 // Update save count badge
                 updateSaveCountBadge();
 
+                // Update button position if save results container is still visible
+                if (saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+                    updateButtonPositionBasedOnContent();
+                }
+
                 // Hide container if no more saves
                 if (saveResults.length === 0) {
                     hideSaveResultsContainer();
@@ -587,17 +597,68 @@ if (window.pdfjsLib) {
         return Math.max(0, Math.min(100, movementPercentage));
     }
 
-    // Update button position based on rectangle content width
+    // Calculate total width of saved results content
+    function calculateSavedResultsContentWidth() {
+        if (!saveResults || saveResults.length === 0) {
+            return 0;
+        }
+
+        let totalContentWidth = 0;
+
+        saveResults.forEach(saveResult => {
+            // Calculate width based on formatted information text length
+            const formattedInfo = formatSavedInformation(saveResult.data);
+            const textWidth = formattedInfo.length * 8; // Approximate 8px per character
+
+            // Add width for compiled image (estimated)
+            const imageWidth = 150; // Estimated preview image width
+
+            // Add width for timestamp and UI elements
+            const uiWidth = 200; // Estimated UI elements width
+
+            // Use the larger of text or image width plus UI width
+            const saveResultWidth = Math.max(textWidth, imageWidth) + uiWidth;
+            totalContentWidth += saveResultWidth;
+        });
+
+        return totalContentWidth;
+    }
+
+    // Update button movement calculation to consider both rectangles and saved results
+    function calculateTotalMovementPercentage() {
+        const rectWidth = calculateRectangleContentWidth();
+        const savedResultsWidth = calculateSavedResultsContentWidth();
+
+        // Use the larger of the two widths for movement calculation
+        const totalWidth = Math.max(rectWidth, savedResultsWidth);
+
+        // Define width thresholds for movement calculation
+        const maxExpectedWidth = 2000;
+        const minWidthThreshold = 100;
+
+        if (totalWidth <= minWidthThreshold) {
+            return 0;
+        }
+
+        const normalizedWidth = Math.min(totalWidth, maxExpectedWidth);
+        const movementPercentage = ((normalizedWidth - minWidthThreshold) / (maxExpectedWidth - minWidthThreshold)) * 100;
+
+        return Math.max(0, Math.min(100, movementPercentage));
+    }
+
+    // Update button position based on rectangle and saved results content width
     function updateButtonPositionBasedOnContent() {
         if (!saveResultsToggleBtn) return;
 
-        const movementPercentage = calculateButtonMovementPercentage();
+        const movementPercentage = calculateTotalMovementPercentage();
         const containerWidth = 384; // w-96 = 24rem = 384px
         const containerRightOffset = 24; // right-6 = 1.5rem = 24px
         const baseButtonRightOffset = 16; // right-4 = 1rem = 16px
         const hasRectangles = calculateRectangleContentWidth() > 0;
+        const hasSavedResults = calculateSavedResultsContentWidth() > 0;
+        const hasAnyContent = hasRectangles || hasSavedResults;
 
-        if (!hasRectangles) {
+        if (!hasAnyContent) {
             // No content: keep button at original position, just shake
             saveResultsToggleBtn.style.right = '';
             saveResultsToggleBtn.style.transform = '';
@@ -610,10 +671,10 @@ if (window.pdfjsLib) {
                 }
             }, 800);
         } else {
-            // Has content: move button based on rectangle width, no shaking
+            // Has content: move button based on total content width, no shaking
             saveResultsToggleBtn.classList.remove('shake-empty');
 
-            // Calculate how far to move based on rectangle content width
+            // Calculate how far to move based on total content width (rectangles + saved results)
             // Base movement: move button to left edge of container
             // Additional movement: content-dependent movement further left
             const baseMovement = containerWidth + containerRightOffset - baseButtonRightOffset;
