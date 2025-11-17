@@ -59,16 +59,20 @@ html {
     transition: transform 0.3s ease-in-out, border-radius 0.3s ease-in-out;
 }
 
+#saveResultsToggleBtn {
+    transition: right 0.3s ease-out, transform 0.3s ease-out;
+}
+
 #saveResultsToggleBtn:hover:not(.showing-container) {
     transform: translateY(-50%) scale(1.05);
 }
 
 #saveResultsToggleBtn.showing-container {
-    transform: translate(-100%, -50%);
+    /* Position and transform will be set dynamically by JavaScript based on rectangle content width */
 }
 
 #saveResultsToggleBtn.showing-container:hover {
-    transform: translate(-100%, -50%) scale(1.05);
+    transform: translateY(-50%) scale(1.05);
 }
 
 /* Badge for save count */

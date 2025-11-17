@@ -514,6 +514,9 @@ if (window.pdfjsLib) {
             saveResultsToggleBtn.style.borderRadius = '0.5rem 0 0 0.5rem';
             saveResultsToggleBtn.classList.add('rounded-r-0');
 
+            // Update button position based on rectangle content width
+            updateButtonPositionBasedOnContent();
+
             // Update button icon and title
             const icon = saveResultsToggleBtn.querySelector('i');
             if (icon) {
@@ -532,6 +535,11 @@ if (window.pdfjsLib) {
             saveResultsToggleBtn.style.borderRadius = '';
             saveResultsToggleBtn.classList.remove('rounded-r-0');
 
+            // Reset transform and position to default
+            saveResultsToggleBtn.style.transform = '';
+            saveResultsToggleBtn.style.right = '';
+            saveResultsToggleBtn.style.removeProperty('--movement-percentage');
+
             // Update button icon and title
             const icon = saveResultsToggleBtn.querySelector('i');
             if (icon) {
@@ -539,6 +547,63 @@ if (window.pdfjsLib) {
             }
             saveResultsToggleBtn.title = 'Show saved results';
         }
+    }
+
+    // Calculate total width of all rectangles in 3D category
+    function calculateRectangleContentWidth() {
+        if (!appState['3D'] || !appState['3D'].history || !appState['3D'].history[appState['3D'].historyIndex]) {
+            return 0;
+        }
+
+        const rectangles = appState['3D'].history[appState['3D'].historyIndex];
+        const totalWidth = rectangles.reduce((sum, rect) => {
+            // Only include rectangle shapes, not other shapes
+            return rect.type === 'rect' ? sum + (rect.width || 0) : sum;
+        }, 0);
+
+        return totalWidth;
+    }
+
+    // Convert rectangle width to button movement percentage (0-100%)
+    function calculateButtonMovementPercentage() {
+        const totalRectWidth = calculateRectangleContentWidth();
+
+        // Define width thresholds for movement calculation
+        // Based on COMPILED_ITEM_IMAGE_HEIGHT_STANDARD (2000) as max expected width
+        const maxExpectedWidth = 2000;
+        const minWidthThreshold = 100; // Minimum width to start movement
+
+        if (totalRectWidth <= minWidthThreshold) {
+            return 0; // No movement for minimal content
+        }
+
+        // Progressive movement: map width range to percentage (0-100%)
+        const normalizedWidth = Math.min(totalRectWidth, maxExpectedWidth);
+        const movementPercentage = ((normalizedWidth - minWidthThreshold) / (maxExpectedWidth - minWidthThreshold)) * 100;
+
+        return Math.max(0, Math.min(100, movementPercentage));
+    }
+
+    // Update button position based on rectangle content width
+    function updateButtonPositionBasedOnContent() {
+        if (!saveResultsToggleBtn) return;
+
+        const movementPercentage = calculateButtonMovementPercentage();
+        const containerWidth = 384; // w-96 = 24rem = 384px
+        const containerRightOffset = 24; // right-6 = 1.5rem = 24px
+        const baseButtonRightOffset = 16; // right-4 = 1rem = 16px
+
+        // Calculate how far to move based on rectangle content width
+        // Base movement: move button to left edge of container
+        // Additional movement: content-dependent movement further left
+        const baseMovement = containerWidth + containerRightOffset - baseButtonRightOffset;
+        const contentBasedMovement = (baseMovement * movementPercentage) / 100;
+        const totalMovement = baseMovement + contentBasedMovement;
+
+        // Apply dynamic positioning
+        saveResultsToggleBtn.style.right = `${totalMovement}px`;
+        saveResultsToggleBtn.style.transform = `translateY(-50%)`;
+        saveResultsToggleBtn.style.setProperty('--movement-percentage', `${movementPercentage}%`);
     }
 
     function updateSaveCountBadge() {
@@ -866,6 +931,11 @@ if (window.pdfjsLib) {
         categoryState.history.push(newRectsState);
         categoryState.historyIndex++;
         updateFinishButtonState();
+
+        // Update button position if rectangles were added to 3D category and save results container is visible
+        if (currentCategory === '3D' && saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+            updateButtonPositionBasedOnContent();
+        }
     }
 
     function handleImageUpload(file, targetCategory = currentCategory) {
@@ -1117,10 +1187,40 @@ async function handlePdfData(data, fileName) {
             drawInteractiveCanvas();
             imageCanvasContainer.classList.remove('opacity-0');
         }, 150);
+
+        // Update button position if save results container is visible (affects 3D category rectangles)
+        if (saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+            updateButtonPositionBasedOnContent();
+        }
     }
 
-    function handleUndo() { const cs = appState[currentCategory]; if (cs.historyIndex > 0) { cs.historyIndex--; drawInteractiveCanvas(); } updateUndoRedoButtonStates(); }
-    function handleRedo() { const cs = appState[currentCategory]; if (cs.historyIndex < cs.history.length - 1) { cs.historyIndex++; drawInteractiveCanvas(); } updateUndoRedoButtonStates(); }
+    function handleUndo() {
+        const cs = appState[currentCategory];
+        if (cs.historyIndex > 0) {
+            cs.historyIndex--;
+            drawInteractiveCanvas();
+        }
+        updateUndoRedoButtonStates();
+
+        // Update button position if rectangles were changed in 3D category and save results container is visible
+        if (currentCategory === '3D' && saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+            updateButtonPositionBasedOnContent();
+        }
+    }
+
+    function handleRedo() {
+        const cs = appState[currentCategory];
+        if (cs.historyIndex < cs.history.length - 1) {
+            cs.historyIndex++;
+            drawInteractiveCanvas();
+        }
+        updateUndoRedoButtonStates();
+
+        // Update button position if rectangles were changed in 3D category and save results container is visible
+        if (currentCategory === '3D' && saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
+            updateButtonPositionBasedOnContent();
+        }
+    }
 
     function updateUndoRedoButtonStates() {
         const categoryState = appState[currentCategory];
