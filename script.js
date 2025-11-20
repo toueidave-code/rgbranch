@@ -528,9 +528,9 @@ if (window.pdfjsLib) {
             updateButtonPositionBasedOnContent();
 
             // Update button icon and title
-            const icon = saveResultsToggleBtn.querySelector('i');
-            if (icon) {
-                icon.className = 'bi bi-x-lg text-lg';
+            const arrow = saveResultsToggleBtn.querySelector('#saveToggleArrow');
+            if (arrow) {
+                arrow.textContent = '>';
             }
             saveResultsToggleBtn.title = 'Hide saved results';
         }
@@ -554,9 +554,9 @@ if (window.pdfjsLib) {
             saveResultsToggleBtn.classList.remove('shake-empty');
 
             // Update button icon and title
-            const icon = saveResultsToggleBtn.querySelector('i');
-            if (icon) {
-                icon.className = 'bi bi-saved-fill text-lg';
+            const arrow = saveResultsToggleBtn.querySelector('#saveToggleArrow');
+            if (arrow) {
+                arrow.textContent = '<';
             }
             saveResultsToggleBtn.title = 'Show saved results';
         }
@@ -602,7 +602,7 @@ if (window.pdfjsLib) {
     function updateButtonPositionBasedOnContent() {
         if (!saveResultsToggleBtn) return;
 
-        const containerWidth = 384; // w-96 = 24rem = 384px
+        const containerWidth = 410; // w-96 = 24rem = 384px
         const containerRightOffset = 24; // right-6 = 1.5rem = 24px
         const baseButtonRightOffset = 16; // right-4 = 1rem = 16px
         const hasRectangles = calculateRectangleContentWidth() > 0;
