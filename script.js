@@ -435,11 +435,11 @@ if (window.pdfjsLib) {
     }
 
     // Update save result box UI
-    async function updateSaveResultBox(boxId, saveData) {
+    function updateSaveResultBox(boxId, saveData) {
         const box = document.getElementById(boxId);
         if (box) {
             const savedInfo = formatSavedInformation(saveData);
-            const compiledImageData = await generateCompiledPreview(saveData);
+            const compiledImageData = generateCompiledPreview(saveData);
 
             // Update info content
             const infoContent = box.querySelector('.save-info-content');
@@ -515,6 +515,7 @@ if (window.pdfjsLib) {
         }
     }
 
+    
     function showSaveResultsContainer() {
         if (saveResultsContainer && saveResultsToggleBtn) {
             saveResultsContainer.classList.remove('hidden');
