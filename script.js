@@ -176,7 +176,7 @@ if (window.pdfjsLib) {
     // ========================================================================
 
     // Main Save Function
-    function saveWorkState() {
+    async function saveWorkState() {
         try {
             // Check if there's any content to save
             const hasContent = CATEGORY_NAMES.some(cat => appState[cat] && appState[cat].img) || currentPdfExtractedInfo;
@@ -190,6 +190,7 @@ if (window.pdfjsLib) {
                 timestamp: new Date().toISOString(),
                 currentCategory: currentCategory,
                 pdfExtractedInfo: currentPdfExtractedInfo,
+                fileName: fileNameDisplay ? fileNameDisplay.textContent.trim() : '',
                 categories: {}
             };
 
@@ -232,7 +233,7 @@ if (window.pdfjsLib) {
             const existingSave = findSaveByContentHash(contentHash);
             if (existingSave) {
                 // Replace existing save
-                updateSaveResult(existingSave.id, saveData);
+                await updateSaveResult(existingSave.id, saveData);
                 showSaveStatusMessage('Existing save updated!', 'success');
             } else {
                 // Add new save
@@ -311,14 +312,14 @@ if (window.pdfjsLib) {
     }
 
     // Update existing save result
-    function updateSaveResult(saveId, saveData) {
+    async function updateSaveResult(saveId, saveData) {
         const saveIndex = saveResults.findIndex(save => save.id === saveId);
         if (saveIndex !== -1) {
             saveResults[saveIndex].data = saveData;
             saveResults[saveIndex].timestamp = saveData.timestamp;
 
             // Update the UI box
-            updateSaveResultBox(saveId, saveData);
+            await updateSaveResultBox(saveId, saveData);
         }
     }
 
@@ -332,11 +333,12 @@ if (window.pdfjsLib) {
         box.id = boxId;
         box.className = 'save-result-box bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl p-4 opacity-0 scale-95 transition-all duration-200';
 
+        const displayName = saveResult.data.fileName || 'Untitled';
         const timeString = new Date(saveResult.timestamp).toLocaleString();
 
         box.innerHTML = `
             <div class="flex justify-between items-center mb-3">
-                <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${timeString}</span>
+                <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${displayName}</span>
                 <button class="close-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
                     <i class="bi bi-x-lg text-xs"></i>
                 </button>
@@ -360,7 +362,7 @@ if (window.pdfjsLib) {
                     </div>
                 </div>
             </div>
-            <div class="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">Click boxes to copy</div>
+            <div class="text-xs text-gray-500 dark:text-gray-400 text-center mt-3">${timeString}</div>
         `;
 
         // Add event listeners
@@ -435,11 +437,11 @@ if (window.pdfjsLib) {
     }
 
     // Update save result box UI
-    function updateSaveResultBox(boxId, saveData) {
+    async function updateSaveResultBox(boxId, saveData) {
         const box = document.getElementById(boxId);
         if (box) {
             const savedInfo = formatSavedInformation(saveData);
-            const compiledImageData = generateCompiledPreview(saveData);
+            const compiledImageData = await generateCompiledPreview(saveData);
 
             // Update info content
             const infoContent = box.querySelector('.save-info-content');
@@ -455,11 +457,18 @@ if (window.pdfjsLib) {
                     `<div class="text-center text-gray-400 dark:text-gray-500 p-2"><i class="bi bi-image text-lg"></i><p class="text-xs mt-1">No image</p></div>`;
             }
 
-            // Update timestamp
+            // Update timestamp in footer
             const timeString = new Date(saveData.timestamp).toLocaleString();
-            const timestampLabel = box.querySelector('.text-sm.font-semibold');
-            if (timestampLabel) {
-                timestampLabel.textContent = timeString;
+            const timestampFooter = box.querySelector('.text-xs.text-gray-500');
+            if (timestampFooter) {
+                timestampFooter.textContent = timeString;
+            }
+
+            // Update filename in header
+            const displayName = saveData.fileName || 'Untitled';
+            const filenameLabel = box.querySelector('.text-sm.font-semibold');
+            if (filenameLabel) {
+                filenameLabel.textContent = displayName;
             }
 
             // Update stored data
