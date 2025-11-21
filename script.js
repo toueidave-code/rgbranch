@@ -229,16 +229,39 @@ if (window.pdfjsLib) {
                 }
             });
 
-            // Check if this content already exists
-            const existingSave = findSaveByContentHash(contentHash);
-            if (existingSave) {
-                // Replace existing save
-                await updateSaveResult(existingSave.id, saveData);
-                showSaveStatusMessage('Existing save updated!', 'success');
+            // Check if a save with this filename already exists
+            const currentFileName = saveData.fileName;
+            if (currentFileName) {
+                const existingSaveByFileName = findSaveByFileName(currentFileName);
+                if (existingSaveByFileName) {
+                    // Update existing save with same filename
+                    await updateSaveResult(existingSaveByFileName.id, saveData);
+                    showSaveStatusMessage('Save updated for existing filename!', 'success');
+                } else {
+                    // Check if this content already exists (different filename but same content)
+                    const existingSaveByContent = findSaveByContentHash(contentHash);
+                    if (existingSaveByContent) {
+                        // Replace existing save
+                        await updateSaveResult(existingSaveByContent.id, saveData);
+                        showSaveStatusMessage('Existing save updated!', 'success');
+                    } else {
+                        // Add new save
+                        addSaveResult(saveData, contentHash);
+                        showSaveStatusMessage('Work saved successfully!', 'success');
+                    }
+                }
             } else {
-                // Add new save
-                addSaveResult(saveData, contentHash);
-                showSaveStatusMessage('Work saved successfully!', 'success');
+                // No filename, use original content-based duplicate detection
+                const existingSave = findSaveByContentHash(contentHash);
+                if (existingSave) {
+                    // Replace existing save
+                    await updateSaveResult(existingSave.id, saveData);
+                    showSaveStatusMessage('Existing save updated!', 'success');
+                } else {
+                    // Add new save
+                    addSaveResult(saveData, contentHash);
+                    showSaveStatusMessage('Work saved successfully!', 'success');
+                }
             }
 
             // Show the results container
@@ -285,6 +308,11 @@ if (window.pdfjsLib) {
     // Find existing save by content hash
     function findSaveByContentHash(contentHash) {
         return saveResults.find(save => save.contentHash === contentHash);
+    }
+
+    // Find existing save by filename
+    function findSaveByFileName(fileName) {
+        return saveResults.find(save => save.data.fileName === fileName);
     }
 
     // Add new save result
