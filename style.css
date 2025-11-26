@@ -145,16 +145,91 @@ html {
 @keyframes statusMessageSlide {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        transform: translateX(400px);
     }
     to {
         opacity: 1;
-        transform: translateY(0);
+        transform: translateX(0);
     }
 }
 
+#saveStatusMessage {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: white;
+    color: #374151;
+    padding: 12px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border: 1px solid #e5e7eb;
+    font-size: 14px;
+    font-weight: 500;
+    max-width: 350px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: translateX(400px);
+    transition: all 0.3s ease-out;
+}
+
+/* Dark mode styles for floating status message */
+.dark #saveStatusMessage {
+    background: #1f2937;
+    color: #d1d5db;
+    border-color: #374151;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
 #saveStatusMessage:not(.hidden) {
+    transform: translateX(0);
     animation: statusMessageSlide 0.3s ease-out;
+}
+
+/* Success message styling */
+#saveStatusMessage.text-green-600,
+#saveStatusMessage.dark\:text-green-400 {
+    border-color: #10b981;
+    background: #ecfdf5;
+    color: #065f46;
+}
+
+.dark #saveStatusMessage.text-green-600,
+.dark #saveStatusMessage.dark\:text-green-400 {
+    background: #064e3b;
+    border-color: #059669;
+    color: #6ee7b7;
+}
+
+/* Error message styling */
+#saveStatusMessage.text-red-600,
+#saveStatusMessage.dark\:text-red-400 {
+    border-color: #ef4444;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.dark #saveStatusMessage.text-red-600,
+.dark #saveStatusMessage.dark\:text-red-400 {
+    background: #7f1d1d;
+    border-color: #dc2626;
+    color: #fca5a5;
+}
+
+/* Warning message styling */
+#saveStatusMessage.text-yellow-600,
+#saveStatusMessage.dark\:text-yellow-400 {
+    border-color: #f59e0b;
+    background: #fffbeb;
+    color: #92400e;
+}
+
+.dark #saveStatusMessage.text-yellow-600,
+.dark #saveStatusMessage.dark\:text-yellow-400 {
+    background: #78350f;
+    border-color: #d97706;
+    color: #fcd34d;
 }
 
 /* Scrollbar styling for save boxes */
