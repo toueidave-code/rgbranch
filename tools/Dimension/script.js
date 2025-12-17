@@ -132,8 +132,15 @@ document.addEventListener('DOMContentLoaded', () => {
             try {
                 const base64Image = await readFileAsBase64(file);
 
-                const GEMINI_API_KEY = "AIzaSyAUo35gojTVjmQTDzCp__HBMgeIGCkVzjc";
-                const GEMINI_API_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+                // Replace these placeholders with up to 5 API keys when you're ready.
+                // Example: ['KEY1', 'KEY2', 'KEY3', 'KEY4', 'KEY5']
+                const GEMINI_API_KEYS = [
+                    '',
+                    '',
+                    '',
+                    '',
+                    ''
+                ];
 
                 const requestBody = {
                     contents: [
@@ -146,22 +153,75 @@ document.addEventListener('DOMContentLoaded', () => {
                     ]
                 };
 
-                const response = await fetch(GEMINI_API_ENDPOINT, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
+                async function callGeminiWithKeyRotation(body) {
+                    // If no keys provided, return a descriptive error so caller can handle it
+                    if (!Array.isArray(GEMINI_API_KEYS) || GEMINI_API_KEYS.length === 0 || GEMINI_API_KEYS.every(k => !k)) {
+                        return { error: 'no_keys_configured' };
+                    }
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    console.error('Gemini API Error:', errorData);
-                    addListItem(`Error processing ${file.name}: ${errorData.error ? errorData.error.message : 'Unknown error'}`, 'error-item');
+                    for (let i = 0; i < GEMINI_API_KEYS.length; i++) {
+                        const key = GEMINI_API_KEYS[i];
+                        if (!key) continue; // skip empty slots
+
+                        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${key}`;
+
+                        try {
+                            const resp = await fetch(endpoint, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(body)
+                            });
+
+                            if (resp.ok) {
+                                const json = await resp.json();
+                                return { success: true, data: json, usedKeyIndex: i };
+                            }
+
+                            // Try to parse error details
+                            let errData = null;
+                            try { errData = await resp.json(); } catch (e) { errData = null; }
+                            const errMsg = errData && (errData.error && errData.error.message) ? errData.error.message : (errData && errData.message) || '';
+
+                            // If the error indicates quota/rate limiting, try the next key
+                            if (resp.status === 429 || /quota|limit|exceeded|rate limit/i.test(errMsg)) {
+                                console.warn(`Key index ${i} appears rate-limited or over quota. Trying next key.`, errMsg);
+                                continue;
+                            }
+
+                            // For other non-recoverable errors, return the parsed error
+                            return { error: 'api_error', status: resp.status, data: errData };
+
+                        } catch (networkError) {
+                            // Network or fetch failure: try next key
+                            console.warn(`Network/error with key index ${i}, trying next key.`, networkError);
+                            continue;
+                        }
+                    }
+
+                    // All keys exhausted or empty
+                    return { error: 'all_keys_exhausted' };
+                }
+
+                const result = await callGeminiWithKeyRotation(requestBody);
+
+                if (result && result.error) {
+                    if (result.error === 'no_keys_configured') {
+                        console.error('No Gemini API keys configured. Please add keys to the GEMINI_API_KEYS array.');
+                        addListItem(`Error processing ${file.name}: No API keys configured.`, 'error-item');
+                        continue;
+                    }
+                    if (result.error === 'all_keys_exhausted') {
+                        console.error('All API keys exhausted or rate-limited.');
+                        addListItem(`Error processing ${file.name}: All API keys exhausted or rate-limited.`, 'error-item');
+                        continue;
+                    }
+                    // Generic API error
+                    console.error('Gemini API returned an error:', result);
+                    addListItem(`Error processing ${file.name}: ${result.data && result.data.error ? result.data.error.message : 'Unknown API error'}`, 'error-item');
                     continue;
                 }
 
-                const data = await response.json();
+                const data = result.data;
                 console.log('Gemini API Response:', data);
 
                 let extractedText = '';

@@ -38,7 +38,6 @@ if (window.pdfjsLib) {
     const clearConfirmationModal = document.getElementById('clearConfirmationModal');
     const confirmClearButton = document.getElementById('confirmClearButton');
     const cancelClearButton = document.getElementById('cancelClearButton');
-    const modalCategoryNameSpan = document.getElementById('modalCategoryName');
     const fitZoomButton = document.getElementById('fitZoomButton');
     const fileNameDisplay = document.getElementById('fileNameDisplay');
     const saveForLaterButton = document.getElementById('saveForLaterButton');
@@ -46,6 +45,8 @@ if (window.pdfjsLib) {
     const saveResultsContainer = document.getElementById('saveResultsContainer');
     const saveResultsToggleBtn = document.getElementById('saveResultsToggleBtn');
     const saveCountBadge = document.getElementById('saveCountBadge');
+    const clearAllSavesBtn = document.getElementById('clearAllSavesBtn');
+    const saveResultsBoxesContainer = document.getElementById('saveResultsBoxesContainer');
 
     // Hamburger Menu Elements
     const hamburgerButton = document.getElementById('hamburgerButton');
@@ -73,7 +74,7 @@ if (window.pdfjsLib) {
     let lastPanX, lastPanY;
 
     // Save System Global Variables
-    let saveResults = []; // Array to track multiple save results
+    let saveResults = loadResultsFromStorage(); // Array to track multiple save results
 
     function debounce(func, delay) {
         let timeout;
@@ -315,6 +316,27 @@ if (window.pdfjsLib) {
         return saveResults.find(save => save.data.fileName === fileName);
     }
 
+    // localStorage functions for save results
+    function saveResultsToStorage() {
+        try {
+            localStorage.setItem('imageCompilerSaveResults', JSON.stringify(saveResults));
+        } catch (error) {
+            console.warn('Failed to save results to localStorage:', error);
+        }
+    }
+
+    function loadResultsFromStorage() {
+        try {
+            const stored = localStorage.getItem('imageCompilerSaveResults');
+            if (stored) {
+                return JSON.parse(stored);
+            }
+        } catch (error) {
+            console.warn('Failed to load results from localStorage:', error);
+        }
+        return [];
+    }
+
     // Add new save result
     function addSaveResult(saveData, contentHash) {
         const saveId = 'save_' + Date.now();
@@ -337,6 +359,9 @@ if (window.pdfjsLib) {
         if (saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) {
             updateButtonPositionBasedOnContent();
         }
+
+        // Save to localStorage
+        saveResultsToStorage();
     }
 
     // Update existing save result
@@ -348,6 +373,9 @@ if (window.pdfjsLib) {
 
             // Update the UI box
             await updateSaveResultBox(saveId, saveData);
+
+            // Save to localStorage
+            saveResultsToStorage();
         }
     }
 
@@ -455,7 +483,7 @@ if (window.pdfjsLib) {
         box.saveData = saveResult.data;
         box.compiledImageData = compiledImageData;
 
-        saveResultsContainer.appendChild(box);
+        saveResultsBoxesContainer.appendChild(box);
 
         // Animate in
         setTimeout(() => {
@@ -537,7 +565,43 @@ if (window.pdfjsLib) {
                 if (saveResults.length === 0) {
                     hideSaveResultsContainer();
                 }
+
+                // Save to localStorage
+                saveResultsToStorage();
             }, 200);
+        }
+    }
+
+    // Clear all saved results
+    function clearAllSavedResults() {
+        if (saveResults.length === 0) return;
+
+        if (confirm('Are you sure you want to delete all saved results? This action cannot be undone.')) {
+            // Clear all save results from array
+            saveResults = [];
+
+            // Clear all UI elements
+            if (saveResultsBoxesContainer) {
+                saveResultsBoxesContainer.innerHTML = '';
+            }
+
+            // Update UI
+            updateSaveCountBadge();
+            hideSaveResultsContainer();
+
+            // Save to localStorage
+            saveResultsToStorage();
+        }
+    }
+
+    // Initialize saved results UI from loaded data
+    function initializeSavedResultsUI() {
+        if (saveResults.length > 0) {
+            saveResults.forEach(saveResult => {
+                createSaveResultBox(saveResult);
+            });
+            updateSaveCountBadge();
+            showSaveResultsContainer();
         }
     }
 
@@ -1974,7 +2038,6 @@ async function handlePdfData(data, fileName) {
         });
 
         clearButton.addEventListener('click', () => {
-            if (modalCategoryNameSpan) modalCategoryNameSpan.textContent = currentCategory;
             clearConfirmationModal.classList.remove('hidden');
             setTimeout(() => {
                  clearConfirmationModal.classList.remove('opacity-0');
@@ -1997,16 +2060,24 @@ async function handlePdfData(data, fileName) {
         });
 
         confirmClearButton.addEventListener('click', () => {
-            if (appState[currentCategory]) {
-                appState[currentCategory].history = [[]];
-                appState[currentCategory].historyIndex = 0;
-                appState[currentCategory].img = null;
-                appState[currentCategory].zoom = 1;
-                appState[currentCategory].panX = 0;
-                appState[currentCategory].panY = 0;
-                setActiveCategoryButtonUI();
-                drawInteractiveCanvas();
-            }
+            // Clear all categories: SHINSEIZU, 2D, 3D, and EXCEL
+            CATEGORY_NAMES.forEach(category => {
+                if (appState[category]) {
+                    appState[category].history = [[]];
+                    appState[category].historyIndex = 0;
+                    appState[category].img = null;
+                    appState[category].loadedDot = null;
+                    appState[category].zoom = 1;
+                    appState[category].panX = 0;
+                    appState[category].panY = 0;
+                    // Clear Excel-specific data if it exists
+                    if (category === 'EXCEL' && appState[category].excelData) {
+                        appState[category].excelData = null;
+                    }
+                }
+            });
+            setActiveCategoryButtonUI();
+            drawInteractiveCanvas();
             clearConfirmationModal.classList.remove('opacity-100');
             clearConfirmationModal.querySelector('div').classList.remove('scale-100');
              clearConfirmationModal.classList.add('opacity-0');
@@ -2032,6 +2103,11 @@ async function handlePdfData(data, fileName) {
         // Save results toggle button functionality
         if (saveResultsToggleBtn) {
             saveResultsToggleBtn.addEventListener('click', toggleSaveResultsContainer);
+        }
+
+        // Clear all saves button functionality
+        if (clearAllSavesBtn) {
+            clearAllSavesBtn.addEventListener('click', clearAllSavedResults);
         }
 
         // Close overlay on escape key
@@ -2135,6 +2211,9 @@ async function handlePdfData(data, fileName) {
                     applyTheme(preferredTheme);
                     updateUndoRedoButtonStates();
                     updateFinishButtonState();
+
+                    // Initialize saved results UI from localStorage
+                    initializeSavedResultsUI();
                 }
 
     document.addEventListener('DOMContentLoaded', initApp);

@@ -415,9 +415,9 @@ html.dark .button.is-loading {
                             <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Project Number</th>
                             <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Project Name</th>
                             <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Building No.</th>
-                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Sent Date</th>
-                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Thunderbird Sent</th>
-                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Thunderbird Date</th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="sortTable('colD')">Sent Date <span id="colD-sort-icon" class="ml-1 text-xs"></span></th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="filterThunderbirdSent()">Thunderbird Sent <span id="thunderbirdSent-filter-icon" class="ml-1 text-xs"></span></th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="sortTable('thunderbirdDate')">Thunderbird Date <span id="thunderbirdDate-sort-icon" class="ml-1 text-xs"></span></th>
                             <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Notes</th>
                         </tr>
                     </thead>
@@ -487,6 +487,138 @@ html.dark .button.is-loading {
 
         let pastedFiles = [];
         let extractedDataForSaving = [];
+        let currentSortColumn = null;
+        let currentSortOrder = 'asc'; // 'asc' or 'desc'
+        let currentThunderbirdFilter = 'all'; // 'all', 'sent', 'not sent'
+
+        // Sorting and filtering functions
+        function sortTable(column) {
+            const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
+
+            // Update sort order
+            if (currentSortColumn === column) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortOrder = 'asc';
+            }
+
+            // Update sort icons
+            updateSortIcons(column);
+
+            // Sort the rows
+            allRows.sort((a, b) => {
+                let aValue, bValue;
+
+                if (column === 'colD') {
+                    // Sent Date column (4th column, index 3)
+                    aValue = a.cells[3].textContent.trim();
+                    bValue = b.cells[3].textContent.trim();
+                } else if (column === 'thunderbirdDate') {
+                    // Thunderbird Date column (6th column, index 5)
+                    aValue = a.cells[5].textContent.trim();
+                    bValue = b.cells[5].textContent.trim();
+                } else {
+                    return 0;
+                }
+
+                // Parse dates for comparison
+                const dateA = parseDate(aValue);
+                const dateB = parseDate(bValue);
+
+                if (dateA === null && dateB === null) return 0;
+                if (dateA === null) return currentSortOrder === 'asc' ? 1 : -1;
+                if (dateB === null) return currentSortOrder === 'asc' ? -1 : 1;
+
+                return currentSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            // Re-append sorted rows
+            allRows.forEach(row => dataTableBody.appendChild(row));
+        }
+
+        function filterThunderbirdSent() {
+            const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
+
+            // Cycle through filter states: all -> sent -> not sent -> all
+            if (currentThunderbirdFilter === 'all') {
+                currentThunderbirdFilter = 'sent';
+            } else if (currentThunderbirdFilter === 'sent') {
+                currentThunderbirdFilter = 'not sent';
+            } else {
+                currentThunderbirdFilter = 'all';
+            }
+
+            // Update filter icon
+            updateFilterIcon();
+
+            // Apply filter
+            allRows.forEach(row => {
+                const thunderbirdSent = row.cells[4].textContent.trim(); // 5th column (index 4)
+
+                if (currentThunderbirdFilter === 'all') {
+                    row.style.display = '';
+                } else if (currentThunderbirdFilter === 'sent') {
+                    row.style.display = thunderbirdSent.includes('✅') ? '' : 'none';
+                } else if (currentThunderbirdFilter === 'not sent') {
+                    row.style.display = thunderbirdSent.includes('✅') ? 'none' : '';
+                }
+            });
+        }
+
+        function parseDate(dateString) {
+            if (!dateString || dateString.trim() === '') return null;
+
+            // Try different date formats
+            const formats = [
+                /^\d{4}\/\d{1,2}\/\d{1,2}/,  // YYYY/MM/DD
+                /^\d{4}-\d{1,2}-\d{1,2}/,  // YYYY-MM-DD
+                /^\d{1,2}\/\d{1,2}\/\d{4}/,  // MM/DD/YYYY
+                /^\d{1,2}-\d{1,2}-\d{4}/,   // MM-DD-YYYY
+            ];
+
+            for (const format of formats) {
+                const match = dateString.match(format);
+                if (match) {
+                    const dateStr = match[0];
+                    // Normalize to YYYY-MM-DD format
+                    const parts = dateStr.replace(/\//g, '-').split('-');
+                    if (parts.length === 3) {
+                        // Check if it's YYYY-MM-DD or MM-DD-YYYY
+                        if (parts[0].length === 4) {
+                            return new Date(parts[0], parts[1] - 1, parts[2]);
+                        } else {
+                            return new Date(parts[2], parts[0] - 1, parts[1]);
+                        }
+                    }
+                }
+            }
+
+            // If no standard format, try creating date directly
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function updateSortIcons(activeColumn) {
+            // Reset all sort icons
+            document.getElementById('colD-sort-icon').textContent = '';
+            document.getElementById('thunderbirdDate-sort-icon').textContent = '';
+
+            // Set active column icon
+            const icon = currentSortOrder === 'asc' ? '↑' : '↓';
+            document.getElementById(`${activeColumn}-sort-icon`).textContent = icon;
+        }
+
+        function updateFilterIcon() {
+            const iconElement = document.getElementById('thunderbirdSent-filter-icon');
+            if (currentThunderbirdFilter === 'all') {
+                iconElement.textContent = '';
+            } else if (currentThunderbirdFilter === 'sent') {
+                iconElement.textContent = '✅';
+            } else if (currentThunderbirdFilter === 'not sent') {
+                iconElement.textContent = '❌';
+            }
+        }
 
         // Helper function to extract only the date portion (YYYY/MM/DD)
         function getDateOnly(dateString) {
@@ -871,7 +1003,17 @@ html.dark .button.is-loading {
             rows.forEach(row => {
                 const projectNumber = (row.dataset.projectNumber || '').toLowerCase();
                 const projectName = (row.dataset.projectName || '').toLowerCase();
-                if (projectNumber.includes(filter) || projectName.includes(filter)) {
+                let matchesSearch = projectNumber.includes(filter) || projectName.includes(filter);
+
+                // Also check Thunderbird Sent filter
+                let matchesThunderbirdFilter = true;
+                if (currentThunderbirdFilter === 'sent') {
+                    matchesThunderbirdFilter = row.cells[4].textContent.includes('✅');
+                } else if (currentThunderbirdFilter === 'not sent') {
+                    matchesThunderbirdFilter = !row.cells[4].textContent.includes('✅');
+                }
+
+                if (matchesSearch && matchesThunderbirdFilter) {
                     row.style.display = '';
                 } else {
                     row.style.display = 'none';
