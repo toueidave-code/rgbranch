@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ProjectSent Viewer</title>
+    <!-- Favicon from previous submission -->
+    <link rel="icon" type="image/png" href="icon.png">
+    <!-- Tailwind CSS CDN for utility classes -->
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <!-- Bootstrap Icons CDN for consistent iconography -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- Google Fonts for 'Sora' typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <script>
+        // Tailwind CSS Configuration
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        theme: {
+                           background: 'rgb(255, 255, 255)',
+                           surface: 'rgb(247, 247, 247)',
+                           border: 'rgb(230, 230, 230)',
+                           'text-primary': 'rgb(5, 5, 5)',
+                           'text-muted': 'rgb(107, 114, 128)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '5, 5, 5',
+                        },
+                        darkTheme: {
+                           background: 'rgb(20, 20, 20)',
+                           surface: 'rgb(30, 30, 30)',
+                           border: 'rgb(50, 50, 50)',
+                           'text-primary': 'rgb(240, 240, 240)',
+                           'text-muted': 'rgb(150, 150, 150)',
+                           accent: 'rgb(0, 122, 255)',
+                           'accent-contrast': 'rgb(255, 255, 255)',
+                           success: 'rgb(40, 167, 69)',
+                           error: 'rgb(220, 53, 69)',
+                           info: 'rgb(23, 162, 184)',
+                           warning: 'rgb(255, 193, 7)',
+                           'accent-rgb': '0, 122, 255',
+                           'text-primary-rgb': '240, 240, 240',
+                        },
+                    },
+                    fontFamily: {
+                        sans: ['Sora', 'sans-serif'],
+                    },
+                    transitionTimingFunction: {
+                        'custom-ease': 'cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                    },
+                    boxShadow: {
+                        'subtle': '0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06)',
+                        'subtle-dark': '0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.18)',
+                    }
+                }
+            }
+        };
+    </script>
+    <style>
+        /* Custom CSS for scrollbars and animations */
+        :root {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.5);
+            --scrollbar-thumb-hover-color: rgba(5, 5, 5, 0.5);
+        }
+        html.dark {
+            --scrollbar-thumb-color: rgba(107, 114, 128, 0.4);
+            --scrollbar-thumb-hover-color: rgba(230, 230, 230, 0.5);
+        }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background-color: var(--scrollbar-thumb-color); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background-color: var(--scrollbar-thumb-hover-color); }
+        body { scrollbar-width: thin; scrollbar-color: var(--scrollbar-thumb-color) transparent; }
+
+        /* Animation for loading spinner */
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        .animate-spin {
+            animation: spin 0.5s linear infinite;
+        }
+        .animate-pulse {
+            animation: pulse 0.5s ease-in-out;
+        }
+        .ease-custom-ease { 
+            transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94); 
+        }
+
+        /* Additional custom styles */
+        .preview-section {
+            display: none;
+        }
+
+        .thumbnail-container {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        .thumbnail {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid var(--theme-border);
+            transition: all 0.2s ease;
+        }
+        
+        .dark .thumbnail {
+            border-color: var(--darkTheme-border);
+        }
+
+        .thumbnail:hover {
+            transform: scale(1.05);
+            border-color: var(--theme-accent);
+        }
+        
+        .dark .thumbnail:hover {
+            border-color: var(--darkTheme-accent);
+        }
+
+        .thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .thumbnail .remove-button {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            font-size: 1rem;
+            line-height: 1;
+        }
+
+        .thumbnail:hover .remove-button {
+            opacity: 1;
+        }
+        
+        /* New button animation styles */
+        .button.is-loading {
+            cursor: not-allowed;
+            animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+        
+        html.dark .button.is-loading {
+            animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse-glow {
+            0% { 
+                box-shadow: 0 0 10px 2px rgba(var(--theme-accent-rgb), 0.5); 
+                background-color: rgba(var(--theme-accent-rgb), 0.7) !important;
+            }
+            50% { 
+                box-shadow: 0 0 15px 4px rgba(var(--theme-accent-rgb), 0.8); 
+                background-color: rgba(var(--theme-accent-rgb), 0.7) !important;
+            }
+            100% { 
+                box-shadow: 0 0 10px 2px rgba(var(--theme-accent-rgb), 0.5); 
+                background-color: rgba(var(--theme-accent-rgb), 0.7) !important;
+            }
+        }
+        
+        html.dark .button.is-loading {
+             animation: pulse-glow 1.5s ease-in-out infinite;
+        }
+        /* Define animation globally */
+@keyframes pulse-glow {
+  0%   { box-shadow: 0 0 10px 2px rgba(var(--darkTheme-accent-rgb), 0.5); }
+  50%  { box-shadow: 0 0 15px 4px rgba(var(--darkTheme-accent-rgb), 0.8); }
+  100% { box-shadow: 0 0 10px 2px rgba(var(--darkTheme-accent-rgb), 0.5); }
+}
+
+/* Apply animation only when html has .dark */
+html.dark .button.is-loading {
+  animation: pulse-glow 1.5s infinite;
+}
+
+
+        .button .spinner {
+            display: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid currentColor;
+            border-top-color: transparent;
+            border-radius: 50%;
+        }
+
+        .button.is-loading .spinner {
+            display: inline-block;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* --- Modal specific styles --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .modal-overlay.is-active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .modal-container {
+            background-color: rgb(255, 255, 255);
+            border: 1px solid var(--theme-border);
+            border-radius: 20px;
+            box-shadow: var(--subtle);
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            transform: translateY(-20px);
+            transition: transform 0.3s ease;
+        }
+        
+        .dark .modal-container {
+            background-color: rgb(25, 25, 25);
+            border: 1px solid var(--darkTheme-border);
+            box-shadow: var(--subtle-dark);
+        }
+
+        .modal-overlay.is-active .modal-container {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid var(--theme-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dark .modal-header {
+            border-bottom: 1px solid var(--darkTheme-border);
+        }
+
+        .modal-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .modal-footer {
+            padding: 1.5rem;
+            border-top: 1px solid var(--theme-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+        
+        .dark .modal-footer {
+            border-top: 1px solid var(--darkTheme-border);
+        }
+        
+        .modal-close-button {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 1.5rem;
+            line-height: 1;
+            color: var(--theme-text-muted);
+            transition: color 0.2s ease;
+        }
+        
+        .dark .modal-close-button {
+            color: var(--darkTheme-text-muted);
+        }
+        
+        .modal-close-button:hover {
+            color: var(--theme-text-primary);
+        }
+        
+        .dark .modal-close-button:hover {
+            color: var(--darkTheme-text-primary);
+        }
+        
+        .data-table th, .data-table td {
+            text-align: left;
+            padding: 0.25rem 0.5rem; /* Reduced padding for a more compressed look */
+            font-size: 0.875rem;
+        }
+        .data-table thead th {
+             padding-top: 0.5rem;
+             padding-bottom: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary dark:text-darkTheme-text-primary antialiased min-h-screen flex flex-col items-center justify-center p-3 transition-colors duration-300 ease-custom-ease font-sans">
+    
+    <div class="w-full max-w-4xl md:max-w-5xl lg:max-w-6xl mx-auto px-4 sm:px-6 bg-theme-surface dark:bg-darkTheme-surface rounded-lg shadow-subtle dark:shadow-subtle-dark mb-4 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+        
+        <!-- Header Section -->
+        <header class="flex flex-col sm:flex-row items-center justify-between gap-2 mb-4 md:mb-6 py-4">
+            <!-- Button Row - Always on top -->
+            <div class="flex justify-between items-center w-full z-10">
+                <!-- Left Button Group -->
+                <div class="flex items-center gap-2">
+                    <a href="https://tcd-raingutter.netlify.app/" aria-label="Back to home" title="Back to Home" 
+                       class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-house-door text-lg"></i>
+                    </a>
+                    <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
+                            class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-arrow-clockwise text-lg"></i>
+                    </button>
+                    <button id="closeWindowBtn" aria-label="Close window" title="Close Window" 
+                            class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-x-lg text-lg"></i>
+                    </button>
+                </div>
+
+                <!-- Theme Toggle Button - Right side in mobile -->
+                <div class="w-12 h-12">
+                     <button id="themeToggleBtn" aria-label="Toggle theme" title="Toggle Theme"
+                        class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200 sm:hidden">
+                        <i class="bi bi-moon-fill icon-moon text-lg"></i>
+                        <i class="bi bi-sun-fill icon-sun text-lg hidden"></i>
+                    </button>
+                </div>
+
+            </div>
+
+            <!-- Title Section - Below buttons in mobile, centered in desktop -->
+            <div class="w-full sm:absolute sm:left-1/2 sm:transform sm:-translate-x-1/2 text-center">
+                <h1 class="text-lg sm:text-xl font-bold text-theme-text-primary dark:text-darkTheme-text-primary mb-1">☔ RAIN GUTTER DEPT TOOLS</h1>
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs">EMAIL SENT CHECKER</p>
+            </div>
+
+            <!-- Theme Toggle Button - Only visible on desktop -->
+            <div class="hidden sm:block z-10 w-12 h-12">
+                 <button id="themeToggleBtnDesktop" aria-label="Toggle theme" title="Toggle Theme" 
+                        class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                    <i class="bi bi-moon-fill icon-lg icon-moon"></i>
+                    <i class="bi bi-sun-fill icon-lg icon-sun hidden"></i>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Content Container -->
+        <div class="bg-theme-surface dark:bg-darkTheme-surface p-4 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-4 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+            <h3 class="text-base font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-2">Image Text Extractor</h3>
+            <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs text-center">Upload an image or **paste** a screenshot (Ctrl+V or Cmd+V).</p>
+            <div class="upload-section mt-4 p-4 flex flex-col items-center justify-center border-2 border-dashed border-theme-border dark:border-darkTheme-border rounded-lg transition-colors duration-300 ease-custom-ease">
+                <input type="file" id="imageInput" accept="image/*" class="file-input hidden" multiple>
+                <label for="imageInput" class="file-label px-3 py-1.5 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Choose Images</label>
+                <div class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs my-2">or drag and drop here</div>
+                <div id="previewsContainer" class="thumbnail-container"></div>
+                <button id="extractButton" class="button primary px-5 py-2 mt-3 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
+                    Extract Text <span id="loadingSpinner" class="spinner"></span>
+                </button>
+            </div>
+        </div>
+        
+        <hr class="border-t border-theme-border dark:border-darkTheme-border my-2">
+
+        <div class="bg-theme-surface dark:bg-darkTheme-surface p-4 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-4 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
+            <h2 class="text-base font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-2">Saved Data</h2>
+            
+            <!-- Search bar -->
+            <div class="flex items-center w-full max-w-md mx-auto mb-2">
+                <input type="text" id="searchBar" placeholder="Search by Project Number or Name..." class="w-full px-3 py-2 rounded-md border border-theme-border dark:border-darkTheme-border focus:outline-none focus:ring-2 focus:ring-theme-accent dark:focus:ring-darkTheme-accent bg-theme-surface dark:bg-darkTheme-surface text-sm placeholder-theme-text-muted dark:placeholder-darkTheme-text-muted">
+            </div>
+            
+            <div class="overflow-x-auto overflow-y-auto max-h-96">
+                <table id="dataTable" class="w-full data-table border-collapse">
+                    <thead>
+                        <tr class="bg-theme-border dark:bg-darkTheme-border sticky top-0">
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Project Number</th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Project Name</th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Building No.</th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="sortTable('colD')">Sent Date <span id="colD-sort-icon" class="ml-1 text-xs"></span></th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="filterThunderbirdSent()">Thunderbird Sent <span id="thunderbirdSent-filter-icon" class="ml-1 text-xs"></span></th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary cursor-pointer hover:bg-theme-accent hover:bg-opacity-20" onclick="sortTable('thunderbirdDate')">Thunderbird Date <span id="thunderbirdDate-sort-icon" class="ml-1 text-xs"></span></th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Notes</th>
+                            <th class="py-1 px-2 font-semibold text-left text-xs text-theme-text-primary dark:text-darkTheme-text-primary">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-theme-border dark:divide-darkTheme-border"></tbody>
+                </table>
+            </div>
+            
+            <!-- Footer Section -->
+            <footer class="text-center mt-3 pt-3 border-t border-theme-border dark:border-darkTheme-border">
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs uppercase tracking-widest">&copy; 2025 RAIN GUTTER DEPARTMENT.</p>
+            </footer>
+        </div>
+    </div>
+    
+
+    <!-- Modal for Extracted Data Preview -->
+    <div id="previewModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Extracted Data Preview</h3>
+                <button id="closeModalButton" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="overflow-y-auto max-h-[50vh]">
+                    <table id="previewTable" class="w-full data-table border-collapse">
+                        <thead>
+                            <tr class="bg-theme-border dark:bg-darkTheme-border">
+                                <th class="py-2 px-3 font-semibold text-left text-sm text-theme-text-primary dark:text-darkTheme-text-primary">Project Number</th>
+                                <th class="py-2 px-3 font-semibold text-left text-sm text-theme-text-primary dark:text-darkTheme-text-primary">Project Name</th>
+                                <th class="py-2 px-3 font-semibold text-left text-sm text-theme-text-primary dark:text-darkTheme-text-primary">Building No.</th>
+                                <th class="py-2 px-3 font-semibold text-left text-sm text-theme-text-primary dark:text-darkTheme-text-primary">Sent Date</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-theme-border dark:divide-darkTheme-border"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="saveButton" class="button primary px-5 py-2.5 bg-theme-success text-white rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Save to Database</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Details Modal -->
+    <div id="viewModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">View Details</h3>
+                <button id="closeViewModalButton" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Project Number</label>
+                        <p id="viewColA" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Project Name</label>
+                        <p id="viewColB" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Building No.</label>
+                        <p id="viewColC" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Sent Date</label>
+                        <p id="viewColD" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Thunderbird Sent</label>
+                        <p id="viewThunderbirdSent" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Thunderbird Date</label>
+                        <p id="viewThunderbirdDate" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Notes</label>
+                        <p id="viewNotes" class="px-3 py-2 bg-theme-surface dark:bg-darkTheme-surface rounded border border-theme-border dark:border-darkTheme-border text-sm"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="closeViewButton" class="px-4 py-2 bg-theme-text-muted text-white rounded-md text-sm font-semibold hover:bg-opacity-80 transition-all">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Edit Record</h3>
+                <button id="closeEditModalButton" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="space-y-3">
+                    <div>
+                        <label for="editColA" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Project Number</label>
+                        <input type="text" id="editColA" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                    </div>
+                    <div>
+                        <label for="editColB" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Project Name</label>
+                        <input type="text" id="editColB" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                    </div>
+                    <div>
+                        <label for="editColC" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Building No.</label>
+                        <input type="text" id="editColC" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                    </div>
+                    <div>
+                        <label for="editColD" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Sent Date</label>
+                        <input type="text" id="editColD" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                    </div>
+                    <div>
+                        <label for="editThunderbirdSent" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Thunderbird Sent</label>
+                        <select id="editThunderbirdSent" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                            <option value="">Not Sent</option>
+                            <option value="✅">Sent ✅</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="editThunderbirdDate" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Thunderbird Date</label>
+                        <input type="text" id="editThunderbirdDate" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent">
+                    </div>
+                    <div>
+                        <label for="editNotes" class="block text-xs font-semibold text-theme-text-muted dark:text-darkTheme-text-muted mb-1">Notes</label>
+                        <textarea id="editNotes" class="w-full px-3 py-2 border border-theme-border dark:border-darkTheme-border rounded-md bg-theme-surface dark:bg-darkTheme-surface text-sm focus:outline-none focus:ring-2 focus:ring-theme-accent resize-none" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelEditButton" class="px-4 py-2 bg-theme-text-muted text-white rounded-md text-sm font-semibold hover:bg-opacity-80 transition-all">Cancel</button>
+                <button id="saveEditButton" class="px-4 py-2 bg-theme-success text-white rounded-md text-sm font-semibold hover:bg-opacity-80 transition-all">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Delete Record</h3>
+                <button id="closeDeleteModalButton" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-theme-text-primary dark:text-darkTheme-text-primary text-sm">Are you sure you want to delete this record? This action cannot be undone.</p>
+                <p class="mt-3 p-3 bg-theme-border dark:bg-darkTheme-border rounded text-theme-text-primary dark:text-darkTheme-text-primary text-sm font-semibold">
+                    <span id="deleteProjectInfo"></span>
+                </p>
+            </div>
+            <div class="modal-footer">
+                <button id="cancelDeleteButton" class="px-4 py-2 bg-theme-text-muted text-white rounded-md text-sm font-semibold hover:bg-opacity-80 transition-all">Cancel</button>
+                <button id="confirmDeleteButton" class="px-4 py-2 bg-theme-error text-white rounded-md text-sm font-semibold hover:bg-opacity-80 transition-all">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const FIREBASE_URL = "https://rain-gutter-2445d-default-rtdb.asia-southeast1.firebasedatabase.app";
+        const COLLECTION = "projectSent";
+        const API_KEY = "AIzaSyAAa9FqvM8LEY6u6REzBRUk3PYzrrrO8Hw"; // Firebase Realtime Database API Key
+        const geminiApiKey = "AIzaSyDiz2fHT87xi8v46v27jwc0aNiuSPfUeo4"; // Gemini API Key
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+        // DOM Elements
+        const htmlElement = document.documentElement;
+        const dataTableBody = document.querySelector("#dataTable tbody");
+        const imageInput = document.getElementById('imageInput');
+        const extractButton = document.getElementById('extractButton');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+        const previewModal = document.getElementById('previewModal');
+        const closeModalButton = document.getElementById('closeModalButton');
+        const previewTableBody = document.querySelector('#previewTable tbody');
+        const saveButton = document.getElementById('saveButton');
+        const fileLabel = document.querySelector('.file-label');
+        const uploadSection = document.querySelector('.upload-section');
+        const previewsContainer = document.getElementById('previewsContainer');
+        const themeToggleButton = document.getElementById('themeToggleBtn');
+        const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
+        const searchBar = document.getElementById('searchBar');
+
+        // CRUD Modal Elements
+        const viewModal = document.getElementById('viewModal');
+        const editModal = document.getElementById('editModal');
+        const deleteModal = document.getElementById('deleteModal');
+        const closeViewModalButton = document.getElementById('closeViewModalButton');
+        const closeEditModalButton = document.getElementById('closeEditModalButton');
+        const closeDeleteModalButton = document.getElementById('closeDeleteModalButton');
+        const saveEditButton = document.getElementById('saveEditButton');
+        const cancelEditButton = document.getElementById('cancelEditButton');
+        const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+        const cancelDeleteButton = document.getElementById('cancelDeleteButton');
+        const closeViewButton = document.getElementById('closeViewButton');
+
+        // Current editing record key
+        let currentEditingKey = null;
+        let currentDeletingKey = null;
+
+        let pastedFiles = [];
+        let extractedDataForSaving = [];
+        let currentSortColumn = null;
+        let currentSortOrder = 'asc'; // 'asc' or 'desc'
+        let currentThunderbirdFilter = 'all'; // 'all', 'sent', 'not sent'
+
+        // Sorting and filtering functions
+        function sortTable(column) {
+            const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
+
+            // Update sort order
+            if (currentSortColumn === column) {
+                currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortColumn = column;
+                currentSortOrder = 'asc';
+            }
+
+            // Update sort icons
+            updateSortIcons(column);
+
+            // Sort the rows
+            allRows.sort((a, b) => {
+                let aValue, bValue;
+
+                if (column === 'colD') {
+                    // Sent Date column (4th column, index 3)
+                    aValue = a.cells[3].textContent.trim();
+                    bValue = b.cells[3].textContent.trim();
+                } else if (column === 'thunderbirdDate') {
+                    // Thunderbird Date column (6th column, index 5)
+                    aValue = a.cells[5].textContent.trim();
+                    bValue = b.cells[5].textContent.trim();
+                } else {
+                    return 0;
+                }
+
+                // Parse dates for comparison
+                const dateA = parseDate(aValue);
+                const dateB = parseDate(bValue);
+
+                if (dateA === null && dateB === null) return 0;
+                if (dateA === null) return currentSortOrder === 'asc' ? 1 : -1;
+                if (dateB === null) return currentSortOrder === 'asc' ? -1 : 1;
+
+                return currentSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+            });
+
+            // Re-append sorted rows
+            allRows.forEach(row => dataTableBody.appendChild(row));
+        }
+
+        function filterThunderbirdSent() {
+            const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
+
+            // Cycle through filter states: all -> sent -> not sent -> all
+            if (currentThunderbirdFilter === 'all') {
+                currentThunderbirdFilter = 'sent';
+            } else if (currentThunderbirdFilter === 'sent') {
+                currentThunderbirdFilter = 'not sent';
+            } else {
+                currentThunderbirdFilter = 'all';
+            }
+
+            // Update filter icon
+            updateFilterIcon();
+
+            // Apply filter
+            allRows.forEach(row => {
+                const thunderbirdSent = row.cells[4].textContent.trim(); // 5th column (index 4)
+
+                if (currentThunderbirdFilter === 'all') {
+                    row.style.display = '';
+                } else if (currentThunderbirdFilter === 'sent') {
+                    row.style.display = thunderbirdSent.includes('✅') ? '' : 'none';
+                } else if (currentThunderbirdFilter === 'not sent') {
+                    row.style.display = thunderbirdSent.includes('✅') ? 'none' : '';
+                }
+            });
+        }
+
+        function parseDate(dateString) {
+            if (!dateString || dateString.trim() === '') return null;
+
+            // Try different date formats
+            const formats = [
+                /^\d{4}\/\d{1,2}\/\d{1,2}/,  // YYYY/MM/DD
+                /^\d{4}-\d{1,2}-\d{1,2}/,  // YYYY-MM-DD
+                /^\d{1,2}\/\d{1,2}\/\d{4}/,  // MM/DD/YYYY
+                /^\d{1,2}-\d{1,2}-\d{4}/,   // MM-DD-YYYY
+            ];
+
+            for (const format of formats) {
+                const match = dateString.match(format);
+                if (match) {
+                    const dateStr = match[0];
+                    // Normalize to YYYY-MM-DD format
+                    const parts = dateStr.replace(/\//g, '-').split('-');
+                    if (parts.length === 3) {
+                        // Check if it's YYYY-MM-DD or MM-DD-YYYY
+                        if (parts[0].length === 4) {
+                            return new Date(parts[0], parts[1] - 1, parts[2]);
+                        } else {
+                            return new Date(parts[2], parts[0] - 1, parts[1]);
+                        }
+                    }
+                }
+            }
+
+            // If no standard format, try creating date directly
+            const date = new Date(dateString);
+            return isNaN(date.getTime()) ? null : date;
+        }
+
+        function updateSortIcons(activeColumn) {
+            // Reset all sort icons
+            document.getElementById('colD-sort-icon').textContent = '';
+            document.getElementById('thunderbirdDate-sort-icon').textContent = '';
+
+            // Set active column icon
+            const icon = currentSortOrder === 'asc' ? '↑' : '↓';
+            document.getElementById(`${activeColumn}-sort-icon`).textContent = icon;
+        }
+
+        function updateFilterIcon() {
+            const iconElement = document.getElementById('thunderbirdSent-filter-icon');
+            if (currentThunderbirdFilter === 'all') {
+                iconElement.textContent = '';
+            } else if (currentThunderbirdFilter === 'sent') {
+                iconElement.textContent = '✅';
+            } else if (currentThunderbirdFilter === 'not sent') {
+                iconElement.textContent = '❌';
+            }
+        }
+
+        // Helper function to extract only the date portion (YYYY/MM/DD)
+        function getDateOnly(dateString) {
+            if (!dateString) return "";
+            const parts = dateString.split(' ')[0].split('-');
+            if (parts.length === 3) {
+                return `${parts[0]}/${parts[1]}/${parts[2]}`;
+            }
+            return dateString.split(' ')[0];
+        }
+
+        // Function to populate the main table (updated logic)
+        async function loadData() {
+          try {
+            const res = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
+            const data = await res.json();
+
+            dataTableBody.innerHTML = "";
+            let allRows = [];
+
+            if (data) {
+              allRows = Object.keys(data).map(key => ({
+                ...data[key],
+                key: key
+              }));
+
+              allRows.sort((a, b) => {
+                const dateA = new Date(a.colD);
+                const dateB = new Date(b.colD);
+                return dateB - dateA;
+              });
+
+              allRows.forEach(row => {
+                const tr = document.createElement("tr");
+                tr.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface"; // Added hover effect
+                tr.dataset.projectNumber = row.colA || '';
+                tr.dataset.projectName = row.colB || '';
+                tr.dataset.key = row.key;
+                tr.innerHTML = `
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colA || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colB || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colC || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colD || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdSent || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdDate || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.notes || ""}</td>
+                  <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">
+                    <div class="flex gap-1">
+                      <button class="px-2 py-1 bg-theme-info text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="viewRow('${row.key}')" title="View">
+                        <i class="bi bi-eye text-sm"></i>
+                      </button>
+                      <button class="px-2 py-1 bg-theme-accent text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="editRow('${row.key}')" title="Edit">
+                        <i class="bi bi-pencil text-sm"></i>
+                      </button>
+                      <button class="px-2 py-1 bg-theme-error text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="deleteRow('${row.key}')" title="Delete">
+                        <i class="bi bi-trash text-sm"></i>
+                      </button>
+                    </div>
+                  </td>
+                `;
+                dataTableBody.appendChild(tr);
+              });
+            } else {
+              const tr = document.createElement("tr");
+              tr.innerHTML = `<td colspan="7" class="py-1 px-2 text-center text-theme-text-muted dark:text-darkTheme-text-muted text-xs">No data found</td>`;
+              dataTableBody.appendChild(tr);
+            }
+          } catch (err) {
+            console.error("Error loading data:", err);
+          }
+        }
+
+        // New: Function to populate the preview table
+        function populatePreviewTable(data) {
+            previewTableBody.innerHTML = '';
+            if (data.length === 0) {
+                const noDataRow = document.createElement('tr');
+                noDataRow.innerHTML = `<td colspan="4" class="py-2 px-3 text-center text-theme-text-muted dark:text-darkTheme-text-muted text-sm">No data extracted.</td>`;
+                previewTableBody.appendChild(noDataRow);
+                return;
+            }
+
+            data.forEach(rowData => {
+                const row = document.createElement('tr');
+                row.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface";
+                row.innerHTML = `
+                    <td class="py-2 px-3 border-b border-theme-border dark:border-darkTheme-border text-sm">${rowData['No.'] || ''}</td>
+                    <td class="py-2 px-3 border-b border-theme-border dark:border-darkTheme-border text-sm">${rowData['Subject'] || ''}</td>
+                    <td class="py-2 px-3 border-b border-theme-border dark:border-darkTheme-border text-sm">${rowData['Correspondents'] || ''}</td>
+                    <td class="py-2 px-3 border-b border-theme-border dark:border-darkTheme-border text-sm">${rowData['Date'] || ''}</td>
+                `;
+                previewTableBody.appendChild(row);
+            });
+        }
+
+        // New: Helper function to read file as Base64
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = error => reject(error);
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Main extraction function
+        async function performExtraction(files) {
+            if (!files || files.length === 0) {
+                alert("Please select one or more image files first or paste a screenshot.");
+                return;
+            }
+
+            extractButton.disabled = true;
+            extractButton.classList.add('is-loading');
+            extractedDataForSaving = [];
+
+            try {
+                for (const file of files) {
+                    const base64ImageData = await readFileAsBase64(file);
+                    const prompt = `Extract all tabular data from this image. The data consists of rows, and each row has four columns: "No.", "Subject", "Correspondents", and "Date".
+                    For "No." and "Subject", please parse the first column in the image, where "No." is the leading number and "Subject" is the rest of the text on that line.
+                    For "Correspondents", extract the email addresses.
+                    For "Date", extract the time or date.
+                    Please return the data as a JSON array, where each element is an object with keys "No.", "Subject", "Correspondents", and "Date".
+                    Example format:
+                    [
+                      {
+                        "No.": "70074023",
+                        "Subject": "[南区納品] 茅ヶ崎市中島3環1棟",
+                        "Correspondents": "sekisan@touei.co.jp, A620@touei.co.jp",
+                        "Date": "10:10"
+                      }
+                    ]`;
+
+                    const payload = {
+                        contents: [
+                            {
+                                role: "user",
+                                parts: [
+                                    { text: prompt },
+                                    {
+                                        inlineData: {
+                                            mimeType: file.type,
+                                            data: base64ImageData.split(',')[1]
+                                        }
+                                    }
+                                ]
+                            }
+                        ],
+                        generationConfig: {
+                            responseMimeType: "application/json",
+                            responseSchema: {
+                                type: "ARRAY",
+                                items: {
+                                    type: "OBJECT",
+                                    properties: {
+                                        "No.": { "type": "STRING" },
+                                        "Subject": { "type": "STRING" },
+                                        "Correspondents": { "type": "STRING" },
+                                        "Date": { "type": "STRING" }
+                                    },
+                                    required: ["No.", "Subject", "Correspondents", "Date"]
+                                }
+                            }
+                        }
+                    };
+
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        throw new Error(`API error for file ${file.name}: ${response.status} ${response.statusText} - ${errorData.error.message}`);
+                    }
+
+                    const result = await response.json();
+                    const jsonString = result.candidates[0].content.parts[0].text;
+                    const parsedData = JSON.parse(jsonString);
+
+                    const today = new Date();
+                    const year = today.getFullYear();
+                    const month = String(today.getMonth() + 1).padStart(2, '0');
+                    const day = String(today.getDate()).padStart(2, '0');
+                    const todayFormatted = `${year}/${month}/${day}`;
+
+                    let filteredData = parsedData.filter(item => {
+                        return item['Subject'] && !item['Subject'].includes('【大工図納品】');
+                    });
+
+                    let cleanedData = filteredData.map(item => {
+                        const newSubject = (item['Subject'] || '').replace('【雨樋図納品】', '').trim();
+                        const newDate = (/^\d{1,2}:\d{2}$/.test(item['Date'])) ? `${todayFormatted} ${item['Date']}` : item['Date'];
+                        return {
+                            'No.': item['No.'] || '',
+                            'Subject': newSubject,
+                            'Correspondents': item['Correspondents'] || '',
+                            'Date': newDate
+                        };
+                    });
+                    
+                    extractedDataForSaving.push(...cleanedData);
+                }
+
+                populatePreviewTable(extractedDataForSaving);
+                previewModal.classList.add('is-active');
+                
+                alert(`Successfully extracted data from ${files.length} image(s). Review the preview and click 'Save to Database'.`);
+
+            } catch (error) {
+                console.error("Error extracting text:", error);
+                alert(`Extraction failed: ${error.message}`);
+                extractedDataForSaving = [];
+                previewModal.classList.remove('is-active');
+            } finally {
+                extractButton.disabled = false;
+                extractButton.classList.remove('is-loading');
+                imageInput.value = ''; // Clear file input
+                pastedFiles = []; // Clear pasted files
+                previewsContainer.innerHTML = ''; // Clear thumbnails
+                updateFileLabel();
+            }
+        }
+
+        // Updated: Function to save data to Firebase Realtime Database
+        async function saveData() {
+            if (extractedDataForSaving.length === 0) {
+                alert("No data to save.");
+                return;
+            }
+
+            saveButton.disabled = true;
+
+            try {
+                const existingRes = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
+                const existingData = await existingRes.json() || {};
+                const existingProjectsMap = new Map();
+
+                for (const key in existingData) {
+                    if (existingData[key].colA) {
+                        existingProjectsMap.set(existingData[key].colA, key);
+                    }
+                }
+
+                const updates = {};
+                const newEntries = [];
+
+                extractedDataForSaving.forEach(item => {
+                    const projectNumber = item['No.'];
+                    const existingKey = existingProjectsMap.get(projectNumber);
+                    const hasRevision = item['Subject'] && item['Subject'].includes('修正');
+
+                    if (existingKey) {
+                        // If the project number exists, update the record
+                        const updatePath = `${existingKey}`;
+                        updates[updatePath] = { ...existingData[existingKey] }; // Copy existing data
+                        updates[updatePath].thunderbirdSent = '✅';
+                        updates[updatePath].thunderbirdDate = item['Date'];
+                        
+                        if (hasRevision) {
+                            updates[updatePath].notes = 'CHECKBACK';
+                            updates[updatePath].colD = getDateOnly(item['Date']);
+                        }
+                    } else {
+                        // If the project number is new, create a new entry
+                        const firebaseFormat = {
+                            colA: item['No.'],
+                            colB: item['Subject'],
+                            colC: item['Correspondents'],
+                            colD: item['Date'],
+                            notes: hasRevision ? 'CHECKBACK' : ''
+                        };
+                        newEntries.push(firebaseFormat);
+                    }
+                });
+
+                let updatedCount = 0;
+                if (Object.keys(updates).length > 0) {
+                    await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`, {
+                        method: 'PATCH',
+                        body: JSON.stringify(updates)
+                    });
+                    updatedCount = Object.keys(updates).length;
+                }
+
+                let newCount = 0;
+                if (newEntries.length > 0) {
+                    const promises = newEntries.map(entry => 
+                        fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`, {
+                            method: 'POST',
+                            body: JSON.stringify(entry)
+                        })
+                    );
+                    await Promise.all(promises);
+                    newCount = newEntries.length;
+                }
+
+                const totalActions = updatedCount + newCount;
+                if (totalActions > 0) {
+                     alert(`Successfully completed ${totalActions} actions. ${updatedCount} updated, ${newCount} new.`);
+                } else {
+                     alert("No new or duplicate data was found. Nothing was saved or updated.");
+                }
+
+                loadData();
+                extractedDataForSaving = [];
+                previewModal.classList.remove('is-active');
+
+            } catch (error) {
+                console.error("Error saving data:", error);
+                alert(`Failed to save data: ${error.message}`);
+            } finally {
+                saveButton.disabled = false;
+            }
+        }
+
+        function addFileToPreview(file, source) {
+            const container = document.createElement('div');
+            container.className = 'thumbnail';
+            container.dataset.source = source;
+            container.dataset.fileName = file.name;
+            container.dataset.fileSize = file.size;
+
+            const img = document.createElement('img');
+            img.src = URL.createObjectURL(file);
+            img.alt = file.name;
+
+            const removeButton = document.createElement('button');
+            removeButton.className = 'remove-button';
+            removeButton.innerHTML = 'x';
+            removeButton.title = 'Remove image';
+            removeButton.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (source === 'pasted') {
+                    pastedFiles = pastedFiles.filter(pastedFile => pastedFile !== file);
+                } else if (source === 'input' || source === 'dragged') {
+                    const dt = new DataTransfer();
+                    Array.from(imageInput.files)
+                        .filter(inputFile => inputFile !== file)
+                        .forEach(f => dt.items.add(f));
+                    imageInput.files = dt.files;
+                }
+                container.remove();
+                updateFileLabel();
+            });
+
+            container.appendChild(img);
+            container.appendChild(removeButton);
+            previewsContainer.appendChild(container);
+
+            updateFileLabel();
+        }
+
+        function handleFiles(files, source) {
+            // If the source is a direct file selection or a drag-drop, clear existing
+            if (source === 'input' || source === 'dragged') {
+                imageInput.value = '';
+                pastedFiles = [];
+                previewsContainer.innerHTML = '';
+                const dt = new DataTransfer();
+                Array.from(files).forEach(file => dt.items.add(file));
+                imageInput.files = dt.files;
+            } else if (source === 'pasted') {
+                // If pasted, just add to the pasted files array
+                Array.from(files).forEach(file => pastedFiles.push(file));
+            }
+
+            Array.from(files).forEach(file => addFileToPreview(file, source));
+        }
+
+        // --- New: Paste from clipboard functionality ---
+        document.addEventListener('paste', (event) => {
+            const items = (event.clipboardData || event.originalEvent.clipboardData).items;
+            const files = [];
+            for (const item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    const file = item.getAsFile();
+                    if (file) {
+                        files.push(file);
+                    }
+                }
+            }
+            if (files.length > 0) {
+                handleFiles(files, 'pasted');
+            }
+            event.preventDefault(); // Prevents the image from being pasted directly into the page
+        });
+        
+        // Function to filter the table
+        function filterTable() {
+            const filter = searchBar.value.toLowerCase();
+            const rows = dataTableBody.querySelectorAll('tr');
+
+            rows.forEach(row => {
+                const projectNumber = (row.dataset.projectNumber || '').toLowerCase();
+                const projectName = (row.dataset.projectName || '').toLowerCase();
+                let matchesSearch = projectNumber.includes(filter) || projectName.includes(filter);
+
+                // Also check Thunderbird Sent filter
+                let matchesThunderbirdFilter = true;
+                if (currentThunderbirdFilter === 'sent') {
+                    matchesThunderbirdFilter = row.cells[4].textContent.includes('✅');
+                } else if (currentThunderbirdFilter === 'not sent') {
+                    matchesThunderbirdFilter = !row.cells[4].textContent.includes('✅');
+                }
+
+                if (matchesSearch && matchesThunderbirdFilter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        // ============ CRUD FUNCTIONS ============
+
+        // VIEW FUNCTION
+        async function viewRow(key) {
+            try {
+                const res = await fetch(`${FIREBASE_URL}/${COLLECTION}/${key}.json?auth=${API_KEY}`);
+                const rowData = await res.json();
+
+                if (rowData) {
+                    document.getElementById('viewColA').textContent = rowData.colA || '';
+                    document.getElementById('viewColB').textContent = rowData.colB || '';
+                    document.getElementById('viewColC').textContent = rowData.colC || '';
+                    document.getElementById('viewColD').textContent = rowData.colD || '';
+                    document.getElementById('viewThunderbirdSent').textContent = rowData.thunderbirdSent || '';
+                    document.getElementById('viewThunderbirdDate').textContent = rowData.thunderbirdDate || '';
+                    document.getElementById('viewNotes').textContent = rowData.notes || '';
+                    
+                    viewModal.classList.add('is-active');
+                }
+            } catch (error) {
+                console.error('Error loading record:', error);
+                alert('Failed to load record: ' + error.message);
+            }
+        }
+
+        // EDIT FUNCTION
+        async function editRow(key) {
+            try {
+                const res = await fetch(`${FIREBASE_URL}/${COLLECTION}/${key}.json?auth=${API_KEY}`);
+                const rowData = await res.json();
+
+                if (rowData) {
+                    document.getElementById('editColA').value = rowData.colA || '';
+                    document.getElementById('editColB').value = rowData.colB || '';
+                    document.getElementById('editColC').value = rowData.colC || '';
+                    document.getElementById('editColD').value = rowData.colD || '';
+                    document.getElementById('editThunderbirdSent').value = rowData.thunderbirdSent || '';
+                    document.getElementById('editThunderbirdDate').value = rowData.thunderbirdDate || '';
+                    document.getElementById('editNotes').value = rowData.notes || '';
+                    
+                    currentEditingKey = key;
+                    editModal.classList.add('is-active');
+                }
+            } catch (error) {
+                console.error('Error loading record:', error);
+                alert('Failed to load record: ' + error.message);
+            }
+        }
+
+        // UPDATE FUNCTION
+        async function updateRow() {
+            if (!currentEditingKey) {
+                alert('No record selected for editing');
+                return;
+            }
+
+            try {
+                saveEditButton.disabled = true;
+
+                const updatedData = {
+                    colA: document.getElementById('editColA').value,
+                    colB: document.getElementById('editColB').value,
+                    colC: document.getElementById('editColC').value,
+                    colD: document.getElementById('editColD').value,
+                    thunderbirdSent: document.getElementById('editThunderbirdSent').value,
+                    thunderbirdDate: document.getElementById('editThunderbirdDate').value,
+                    notes: document.getElementById('editNotes').value
+                };
+
+                const res = await fetch(`${FIREBASE_URL}/${COLLECTION}/${currentEditingKey}.json?auth=${API_KEY}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedData)
+                });
+
+                if (!res.ok) throw new Error('Failed to update record');
+
+                alert('Record updated successfully!');
+                editModal.classList.remove('is-active');
+                currentEditingKey = null;
+                loadData();
+            } catch (error) {
+                console.error('Error updating record:', error);
+                alert('Failed to update record: ' + error.message);
+            } finally {
+                saveEditButton.disabled = false;
+            }
+        }
+
+        // DELETE FUNCTION
+        async function deleteRow(key) {
+            try {
+                const res = await fetch(`${FIREBASE_URL}/${COLLECTION}/${key}.json?auth=${API_KEY}`);
+                const rowData = await res.json();
+
+                if (rowData) {
+                    currentDeletingKey = key;
+                    const projectInfo = `${rowData.colA || 'N/A'} - ${rowData.colB || 'N/A'}`;
+                    document.getElementById('deleteProjectInfo').textContent = projectInfo;
+                    deleteModal.classList.add('is-active');
+                }
+            } catch (error) {
+                console.error('Error loading record:', error);
+                alert('Failed to load record: ' + error.message);
+            }
+        }
+
+        // CONFIRM DELETE FUNCTION
+        async function confirmDelete() {
+            if (!currentDeletingKey) {
+                alert('No record selected for deletion');
+                return;
+            }
+
+            try {
+                confirmDeleteButton.disabled = true;
+
+                const res = await fetch(`${FIREBASE_URL}/${COLLECTION}/${currentDeletingKey}.json?auth=${API_KEY}`, {
+                    method: 'DELETE'
+                });
+
+                if (!res.ok) throw new Error('Failed to delete record');
+
+                alert('Record deleted successfully!');
+                deleteModal.classList.remove('is-active');
+                currentDeletingKey = null;
+                loadData();
+            } catch (error) {
+                console.error('Error deleting record:', error);
+                alert('Failed to delete record: ' + error.message);
+            } finally {
+                confirmDeleteButton.disabled = false;
+            }
+        }
+
+        // ============ END CRUD FUNCTIONS ============
+
+        // Event listeners for the new buttons
+        extractButton.addEventListener('click', () => {
+            const filesToProcess = Array.from(imageInput.files).concat(pastedFiles);
+            performExtraction(filesToProcess);
+        });
+        
+        saveButton.addEventListener('click', saveData);
+        closeModalButton.addEventListener('click', () => {
+            previewModal.classList.remove('is-active');
+        });
+
+        // Event listeners for drag-and-drop
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('border-theme-accent');
+        });
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('border-theme-accent');
+        });
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('border-theme-accent');
+            const files = e.dataTransfer.files;
+            if (files && files.length > 0) {
+                const imageFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+                if (imageFiles.length > 0) {
+                    handleFiles(imageFiles, 'dragged');
+                } else {
+                    alert('Please drop one or more image files.');
+                }
+            }
+        });
+
+        imageInput.addEventListener('change', (e) => {
+            handleFiles(e.target.files, 'input');
+        });
+        
+        searchBar.addEventListener('input', filterTable);
+
+        // Function to update the file label text based on selected/pasted files
+        function updateFileLabel() {
+            const fileCount = imageInput.files.length + pastedFiles.length;
+            if (fileCount > 0) {
+                fileLabel.textContent = `${fileCount} image(s) ready`;
+            } else {
+                fileLabel.textContent = 'Choose Images';
+            }
+        }
+        
+        // Function to handle theme toggling
+        function applyTheme(theme) {
+            htmlElement.classList.remove('light', 'dark');
+            htmlElement.classList.add(theme);
+            localStorage.setItem('tcdRaingutterTheme', theme);
+
+            const moonIcons = document.querySelectorAll('.icon-moon');
+            const sunIcons = document.querySelectorAll('.icon-sun');
+
+            moonIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'none' : 'block';
+            });
+
+            sunIcons.forEach(icon => {
+                icon.style.display = theme === 'dark' ? 'block' : 'none';
+            });
+        }
+
+        // Toggles between light and dark theme
+        function toggleTheme() {
+            const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+            applyTheme(currentTheme === 'light' ? 'dark' : 'light');
+        }
+
+        // Refresh button functionality
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            const icon = this.querySelector('i');
+            icon.classList.add('animate-spin');
+            setTimeout(() => {
+                icon.classList.remove('animate-spin');
+                window.location.reload();
+            }, 500);
+        });
+
+        // Close window button with confirmation
+        document.getElementById('closeWindowBtn').addEventListener('click', function() {
+            try {
+                window.close();
+                if (!window.closed) {
+                    alert('This window cannot be closed programmatically. Please close it manually.');
+                }
+            } catch (error) {
+                alert('An error occurred while trying to close the window: ' + error.message);
+            }
+        });
+
+        // Event listeners for theme toggles
+        themeToggleButton.addEventListener('click', toggleTheme);
+        themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const preferredTheme = localStorage.getItem('tcdRaingutterTheme') ||
+                                 (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+            applyTheme(preferredTheme);
+
+            loadData();
+        });
+
+        // Search 
+        document.getElementById('searchBar').addEventListener('paste', function(event) {
+            let pasteData = (event.clipboardData || window.clipboardData).getData('text');
+            this.value = pasteData.replace(/[^a-zA-Z0-9 ]/g, ''); 
+        });
+
+            // New: Enable pasting specifically in the searchBar
+            searchBar.addEventListener('paste', (event) => {
+                // Allows the default paste behavior for text input
+                // No code needed here, as we're not preventing the default action
+            });
+
+            // New: Enable 'Enter' key to trigger search in the searchBar
+            searchBar.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    filterTable();
+                    // Optional: blur the input to hide the keyboard on mobile devices
+                    searchBar.blur();
+                }
+            });
+
+            // ============ CRUD Modal Event Listeners ============
+
+            // View Modal Events
+            closeViewModalButton.addEventListener('click', () => {
+                viewModal.classList.remove('is-active');
+            });
+            closeViewButton.addEventListener('click', () => {
+                viewModal.classList.remove('is-active');
+            });
+
+            // Edit Modal Events
+            closeEditModalButton.addEventListener('click', () => {
+                editModal.classList.remove('is-active');
+                currentEditingKey = null;
+            });
+            cancelEditButton.addEventListener('click', () => {
+                editModal.classList.remove('is-active');
+                currentEditingKey = null;
+            });
+            saveEditButton.addEventListener('click', updateRow);
+
+            // Delete Modal Events
+            closeDeleteModalButton.addEventListener('click', () => {
+                deleteModal.classList.remove('is-active');
+                currentDeletingKey = null;
+            });
+            cancelDeleteButton.addEventListener('click', () => {
+                deleteModal.classList.remove('is-active');
+                currentDeletingKey = null;
+            });
+            confirmDeleteButton.addEventListener('click', confirmDelete);
+
+            // Close modals when clicking outside
+            [viewModal, editModal, deleteModal].forEach(modal => {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) {
+                        modal.classList.remove('is-active');
+                        currentEditingKey = null;
+                        currentDeletingKey = null;
+                    }
+                });
+            });
+
+            // ============ END CRUD Modal Event Listeners ============
+
+
+    </script>
+</body>
+</html>
