@@ -32,6 +32,14 @@
                        class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
                         <i class="bi bi-house-door text-lg"></i>
                     </a>
+                    <button id="imageExtractorBtn" aria-label="Open Image Text Extractor" title="Image Text Extractor" 
+                            class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-image text-lg"></i>
+                    </button>
+                    <button id="settingsBtn" aria-label="Settings" title="Settings" 
+                            class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
+                        <i class="bi bi-gear text-lg"></i>
+                    </button>
                     <button id="refreshBtn" aria-label="Refresh page" title="Refresh Page" 
                             class="p-1 rounded-full bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-opacity-70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent transition-colors duration-200">
                         <i class="bi bi-arrow-clockwise text-lg"></i>
@@ -71,22 +79,6 @@
 
         <!-- Main Content Container -->
         <div class="bg-theme-surface dark:bg-darkTheme-surface p-4 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-4 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
-            <h3 class="text-base font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-2">Image Text Extractor</h3>
-            <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs text-center">Upload an image or **paste** a screenshot (Ctrl+V or Cmd+V).</p>
-            <div class="upload-section mt-4 p-4 flex flex-col items-center justify-center border-2 border-dashed border-theme-border dark:border-darkTheme-border rounded-lg transition-colors duration-300 ease-custom-ease">
-                <input type="file" id="imageInput" accept="image/*" class="file-input hidden" multiple>
-                <label for="imageInput" class="file-label px-3 py-1.5 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Choose Images</label>
-                <div class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs my-2">or drag and drop here</div>
-                <div id="previewsContainer" class="thumbnail-container"></div>
-                <button id="extractButton" class="button primary px-5 py-2 mt-3 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
-                    Extract Text <span id="loadingSpinner" class="spinner"></span>
-                </button>
-            </div>
-        </div>
-        
-        <hr class="border-t border-theme-border dark:border-darkTheme-border my-2">
-
-        <div class="bg-theme-surface dark:bg-darkTheme-surface p-4 rounded-lg shadow-subtle dark:shadow-subtle-dark mb-4 border border-theme-border dark:border-darkTheme-border transition-colors duration-300 ease-custom-ease">
             <h2 class="text-base font-semibold text-theme-text-primary dark:text-darkTheme-text-primary text-center mb-2">Saved Data</h2>
             
             <!-- Search bar -->
@@ -94,7 +86,7 @@
                 <input type="text" id="searchBar" placeholder="Search by Project Number or Name..." class="w-full px-3 py-2 rounded-md border border-theme-border dark:border-darkTheme-border focus:outline-none focus:ring-2 focus:ring-theme-accent dark:focus:ring-darkTheme-accent bg-theme-surface dark:bg-darkTheme-surface text-sm placeholder-theme-text-muted dark:placeholder-darkTheme-text-muted">
             </div>
             
-            <div class="overflow-x-auto overflow-y-auto max-h-96">
+            <div class="overflow-x-auto overflow-y-auto max-h-[600px]">
                 <table id="dataTable" class="w-full data-table border-collapse">
                     <thead>
                         <tr class="bg-theme-border dark:bg-darkTheme-border sticky top-0">
@@ -119,6 +111,28 @@
         </div>
     </div>
     
+
+    <!-- Image Text Extractor Modal -->
+    <div id="imageExtractorModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 class="text-lg font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Image Text Extractor</h3>
+                <button id="closeImageExtractorModalButton" class="modal-close-button">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs text-center mb-4">Upload an image or **paste** a screenshot (Ctrl+V or Cmd+V).</p>
+                <div class="upload-section p-4 flex flex-col items-center justify-center border-2 border-dashed border-theme-border dark:border-darkTheme-border rounded-lg transition-colors duration-300 ease-custom-ease">
+                    <input type="file" id="imageInput" accept="image/*" class="file-input hidden" multiple>
+                    <label for="imageInput" class="file-label px-3 py-1.5 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Choose Images</label>
+                    <div class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs my-2">or drag and drop here</div>
+                    <div id="previewsContainer" class="thumbnail-container"></div>
+                    <button id="extractButton" class="button primary px-5 py-2 mt-3 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
+                        Extract Text <span id="loadingSpinner" class="spinner"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Modal for Extracted Data Preview -->
     <div id="previewModal" class="modal-overlay">

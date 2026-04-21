@@ -53,8 +53,9 @@ tailwind.config = {
 const FIREBASE_URL = "https://rain-gutter-2445d-default-rtdb.asia-southeast1.firebasedatabase.app";
 const COLLECTION = "projectSent";
 const API_KEY = "AIzaSyAAa9FqvM8LEY6u6REzBRUk3PYzrrrO8Hw"; // Firebase Realtime Database API Key
-const geminiApiKey = "AIzaSyDiz2fHT87xi8v46v27jwc0aNiuSPfUeo4"; // Gemini API Key
-const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`;
+
+// Get Gemini API key from localStorage or prompt user
+let geminiApiKey = localStorage.getItem('geminiApiKey');
 
 // DOM Elements
 const htmlElement = document.documentElement;
@@ -72,6 +73,12 @@ const previewsContainer = document.getElementById('previewsContainer');
 const themeToggleButton = document.getElementById('themeToggleBtn');
 const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
 const searchBar = document.getElementById('searchBar');
+
+// Image Extractor Modal Elements
+const imageExtractorModal = document.getElementById('imageExtractorModal');
+const closeImageExtractorModalButton = document.getElementById('closeImageExtractorModalButton');
+const imageExtractorBtn = document.getElementById('imageExtractorBtn');
+const settingsBtn = document.getElementById('settingsBtn');
 
 // CRUD Modal Elements
 const viewModal = document.getElementById('viewModal');
@@ -329,10 +336,42 @@ function readFileAsBase64(file) {
     });
 }
 
+// Function to check and get Gemini API key
+async function getGeminiApiKey() {
+    let apiKey = localStorage.getItem('geminiApiKey');
+    
+    if (!apiKey) {
+        apiKey = prompt('Please enter your Gemini API key (get one from https://makersuite.google.com/app/apikey):');
+        if (!apiKey) {
+            alert('API key is required for image text extraction.');
+            return null;
+        }
+        localStorage.setItem('geminiApiKey', apiKey);
+    }
+    
+    return apiKey;
+}
+
+// Function to update API key
+function updateGeminiApiKey() {
+    const newApiKey = prompt('Enter your new Gemini API key:');
+    if (newApiKey) {
+        localStorage.setItem('geminiApiKey', newApiKey);
+        geminiApiKey = newApiKey;
+        alert('API key updated successfully!');
+    }
+}
+
 // Main extraction function
 async function performExtraction(files) {
     if (!files || files.length === 0) {
         alert("Please select one or more image files first or paste a screenshot.");
+        return;
+    }
+
+    // Check for API key first
+    const apiKey = await getGeminiApiKey();
+    if (!apiKey) {
         return;
     }
 
@@ -391,7 +430,9 @@ async function performExtraction(files) {
                 }
             };
 
-            const response = await fetch(apiUrl, {
+            const dynamicApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+            const response = await fetch(dynamicApiUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -780,6 +821,21 @@ closeModalButton.addEventListener('click', () => {
     previewModal.classList.remove('is-active');
 });
 
+// Image Extractor Modal Event Listeners
+imageExtractorBtn.addEventListener('click', () => {
+    imageExtractorModal.classList.add('is-active');
+});
+closeImageExtractorModalButton.addEventListener('click', () => {
+    imageExtractorModal.classList.remove('is-active');
+    // Clear previews and reset state
+    previewsContainer.innerHTML = '';
+    pastedFiles = [];
+    imageInput.value = '';
+});
+
+// Settings Button Event Listener
+settingsBtn.addEventListener('click', updateGeminiApiKey);
+
 // Event listeners for drag-and-drop
 uploadSection.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -930,12 +986,18 @@ cancelDeleteButton.addEventListener('click', () => {
 confirmDeleteButton.addEventListener('click', confirmDelete);
 
 // Close modals when clicking outside
-[viewModal, editModal, deleteModal].forEach(modal => {
+[viewModal, editModal, deleteModal, imageExtractorModal].forEach(modal => {
     modal.addEventListener('click', (e) => {
         if (e.target === modal) {
             modal.classList.remove('is-active');
             currentEditingKey = null;
             currentDeletingKey = null;
+            if (modal === imageExtractorModal) {
+                // Clear previews and reset state
+                previewsContainer.innerHTML = '';
+                pastedFiles = [];
+                imageInput.value = '';
+            }
         }
     });
 });
