@@ -102,6 +102,17 @@ let extractedDataForSaving = [];
 let currentSortColumn = null;
 let currentSortOrder = 'asc'; // 'asc' or 'desc'
 let currentThunderbirdFilter = 'all'; // 'all', 'sent', 'not sent'
+const AUTO_REFRESH_INTERVAL_MS = 15000;
+let autoRefreshIntervalId = null;
+
+function startAutoRefresh() {
+    if (autoRefreshIntervalId) {
+        clearInterval(autoRefreshIntervalId);
+    }
+    autoRefreshIntervalId = setInterval(() => {
+        loadData();
+    }, AUTO_REFRESH_INTERVAL_MS);
+}
 
 // Sorting and filtering functions
 function sortTable(column) {
@@ -902,9 +913,9 @@ function toggleTheme() {
 document.getElementById('refreshBtn').addEventListener('click', function() {
     const icon = this.querySelector('i');
     icon.classList.add('animate-spin');
-    setTimeout(() => {
+    setTimeout(async () => {
         icon.classList.remove('animate-spin');
-        window.location.reload();
+        await loadData();
     }, 500);
 });
 
@@ -930,6 +941,11 @@ document.addEventListener('DOMContentLoaded', function() {
     applyTheme(preferredTheme);
 
     loadData();
+    startAutoRefresh();
+
+    window.addEventListener('focus', () => {
+        loadData();
+    });
 });
 
 // Search functionality

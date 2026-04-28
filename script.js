@@ -1209,7 +1209,7 @@ async function handlePdfData(data, fileName) {
         }
 
         const pageAssignments = [
-            { pageNum: 1, category: "EXCEL", cropDetailsConfig: { x: 13, y: 758, width: 800, height: 80, refWidth: 826, refHeight: 1169, conditionalY: 745 } },
+            { pageNum: 1, category: "EXCEL", cropDetailsConfig: { x: 13, y: 758, width: 800, height: 100, refWidth: 826, refHeight: 1169, conditionalY: 745 } },
             { pageNum: 2, category: "2D", cropDetailsConfig: null },
             { pageNum: 3, category: "3D", cropDetailsConfig: null },
             { pageNum: 4, category: "SHINSEIZU", cropDetailsConfig: null }
