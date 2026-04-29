@@ -339,6 +339,115 @@ if (window.pdfjsLib) {
         return hash.toString(36);
     }
 
+    function buildCurrentSaveData(fileName = '') {
+        const saveData = {
+            version: '1.0',
+            timestamp: new Date().toISOString(),
+            currentCategory: currentCategory,
+            pdfExtractedInfo: currentPdfExtractedInfo,
+            fileName: fileName,
+            categories: {}
+        };
+
+        CATEGORY_NAMES.forEach(cat => {
+            const categoryState = appState[cat];
+            if (categoryState && categoryState.img) {
+                let imageDataUrl = categoryState.img.src;
+                try {
+                    const tempCanvas = document.createElement('canvas');
+                    tempCanvas.width = categoryState.img.naturalWidth;
+                    tempCanvas.height = categoryState.img.naturalHeight;
+                    const tempCtx = tempCanvas.getContext('2d');
+                    tempCtx.drawImage(categoryState.img, 0, 0);
+                    imageDataUrl = tempCanvas.toDataURL('image/png');
+                } catch (err) {
+                    console.warn('Unable to convert image to base64 for save refresh:', err);
+                }
+
+                saveData.categories[cat] = {
+                    imageDataUrl: imageDataUrl,
+                    history: categoryState.history,
+                    historyIndex: categoryState.historyIndex,
+                    zoom: categoryState.zoom,
+                    panX: categoryState.panX,
+                    panY: categoryState.panY
+                };
+            } else {
+                saveData.categories[cat] = {
+                    imageDataUrl: null,
+                    history: [[]],
+                    historyIndex: 0,
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0
+                };
+            }
+        });
+
+        return saveData;
+    }
+
+    function restoreSaveDataForEditing(saveData) {
+        currentPdfExtractedInfo = saveData.pdfExtractedInfo || '';
+        if (fileNameDisplay) {
+            fileNameDisplay.textContent = saveData.fileName || '';
+        }
+
+        let firstCategoryWithImage = null;
+        const loadPromises = CATEGORY_NAMES.map(categoryName => {
+            const categorySave = saveData.categories?.[categoryName];
+            if (!categorySave || !categorySave.imageDataUrl) {
+                appState[categoryName] = {
+                    img: null,
+                    history: [[]],
+                    historyIndex: 0,
+                    loadedDot: null,
+                    zoom: 1,
+                    panX: 0,
+                    panY: 0
+                };
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve) => {
+                const img = new Image();
+                img.onload = () => {
+                    appState[categoryName] = {
+                        img,
+                        history: Array.isArray(categorySave.history) ? categorySave.history : [[]],
+                        historyIndex: typeof categorySave.historyIndex === 'number' ? categorySave.historyIndex : 0,
+                        loadedDot: null,
+                        zoom: typeof categorySave.zoom === 'number' ? categorySave.zoom : 1,
+                        panX: typeof categorySave.panX === 'number' ? categorySave.panX : 0,
+                        panY: typeof categorySave.panY === 'number' ? categorySave.panY : 0
+                    };
+                    if (!firstCategoryWithImage) firstCategoryWithImage = categoryName;
+                    resolve();
+                };
+                img.onerror = () => {
+                    appState[categoryName] = {
+                        img: null,
+                        history: [[]],
+                        historyIndex: 0,
+                        loadedDot: null,
+                        zoom: 1,
+                        panX: 0,
+                        panY: 0
+                    };
+                    resolve();
+                };
+                img.src = categorySave.imageDataUrl;
+            });
+        });
+
+        Promise.all(loadPromises).then(() => {
+            setActiveCategoryButtonUI();
+            const preferredCategory = saveData.currentCategory && appState[saveData.currentCategory]?.img ? saveData.currentCategory : firstCategoryWithImage || 'EXCEL';
+            switchCategory(preferredCategory);
+            showSaveStatusMessage('Saved result loaded for editing.', 'success');
+        });
+    }
+
     // Find existing save by content hash
     function findSaveByContentHash(contentHash) {
         return saveResults.find(save => save.contentHash === contentHash);
@@ -426,21 +535,29 @@ if (window.pdfjsLib) {
         const timeString = new Date(saveResult.timestamp).toLocaleString();
 
         box.innerHTML = `
-            <div class="flex justify-between items-center mb-3">
+            <div class="flex justify-between items-center mb-3 gap-2">
                 <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${displayName}</span>
-                <button class="close-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                    <i class="bi bi-x-lg text-xs"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                    <button class="refresh-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full" title="Refresh saved image and info">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </button>
+                    <button class="edit-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full" title="Edit saved result in workspace">
+                        <i class="bi bi-pencil"></i>
+                    </button>
+                    <button class="close-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-full" title="Remove saved result">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
             </div>
             <div class="grid grid-cols-2 gap-2">
-                <div class="save-info-box bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200" title="Click to copy saved information">
+                <div class="save-info-box bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200" title="Click to copy saved information only">
                     <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center">
                         <i class="bi bi-info-circle-fill mr-1 text-blue-500"></i>
                         Information
                     </h5>
                     <div class="save-info-content text-xs text-gray-600 dark:text-gray-400 font-mono max-h-32 overflow-y-auto whitespace-pre-wrap">${savedInfo}</div>
                 </div>
-                <div class="save-image-box bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200" title="Click to copy compiled image">
+                <div class="save-image-box bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600 transition-all duration-200" title="Click to copy both text and image">
                     <h5 class="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1 flex items-center">
                         <i class="bi bi-image-fill mr-1 text-green-500"></i>
                         Image
@@ -463,15 +580,18 @@ if (window.pdfjsLib) {
 
         const infoBox = box.querySelector('.save-info-box');
         const imageBox = box.querySelector('.save-image-box');
+        const editBtn = box.querySelector('.edit-save-btn');
+        const refreshBtn = box.querySelector('.refresh-save-btn');
 
         async function copyTextOnly() {
             try {
-                if (!savedInfo) {
+                const currentSavedInfo = formatSavedInformation(box.saveData || saveResult.data);
+                if (!currentSavedInfo) {
                     showSaveStatusMessage('No information to copy.', 'error');
                     return;
                 }
 
-                await navigator.clipboard.writeText(savedInfo);
+                await navigator.clipboard.writeText(currentSavedInfo);
 
                 infoBox.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
                 infoBox.style.borderColor = 'rgb(59, 130, 246)';
@@ -489,19 +609,22 @@ if (window.pdfjsLib) {
 
         async function copyTextAndImage() {
             try {
-                if (!savedInfo) {
+                const currentSavedInfo = formatSavedInformation(box.saveData || saveResult.data);
+                const currentImageData = box.compiledImageData || compiledImageData;
+
+                if (!currentSavedInfo) {
                     showSaveStatusMessage('No information to copy.', 'error');
                     return;
                 }
-                if (!compiledImageData) {
+                if (!currentImageData) {
                     showSaveStatusMessage('No image to copy.', 'error');
                     return;
                 }
 
-                const blob = dataURLtoBlob(compiledImageData);
-                const textBlob = new Blob([savedInfo], { type: 'text/plain' });
+                const blob = dataURLtoBlob(currentImageData);
+                const textBlob = new Blob([currentSavedInfo], { type: 'text/plain' });
                 const htmlBlob = new Blob([
-                    `<div><img src="${compiledImageData}" alt="Saved image" style="max-width:100%; display:block; margin-bottom:12px;"><p style="white-space:pre-wrap; font-family:inherit;">${escapeHtml(savedInfo)}</p></div>`
+                    `<div><img src="${currentImageData}" alt="Saved image" style="max-width:100%; display:block; margin-bottom:12px;"><p style="white-space:pre-wrap; font-family:inherit;">${escapeHtml(currentSavedInfo)}</p></div>`
                 ], { type: 'text/html' });
 
                 const clipboardItem = new ClipboardItem({
@@ -524,7 +647,7 @@ if (window.pdfjsLib) {
                 console.error('Failed to copy save data:', err);
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                     try {
-                        await navigator.clipboard.writeText(savedInfo);
+                        await navigator.clipboard.writeText(formatSavedInformation(box.saveData || saveResult.data));
                         showSaveStatusMessage('Text copied, but image copy is unsupported.', 'warning');
                     } catch (textErr) {
                         console.error('Fallback text copy failed:', textErr);
@@ -536,8 +659,36 @@ if (window.pdfjsLib) {
             }
         }
 
+        function editSavedInformation() {
+            restoreSaveDataForEditing(saveResult.data);
+        }
+
+        function refreshSavedDataFromCurrentState() {
+            const hasContent = CATEGORY_NAMES.some(cat => appState[cat] && appState[cat].img) || currentPdfExtractedInfo;
+            if (!hasContent) {
+                showSaveStatusMessage('No current state to refresh from.', 'error');
+                return;
+            }
+
+            const updatedData = buildCurrentSaveData(saveResult.data.fileName || '');
+            updateSaveResult(saveResult.id, updatedData);
+            showSaveStatusMessage('Saved image and information refreshed from current state.', 'success');
+        }
+
         infoBox.addEventListener('click', copyTextOnly);
         imageBox.addEventListener('click', copyTextAndImage);
+        if (editBtn) {
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                editSavedInformation();
+            });
+        }
+        if (refreshBtn) {
+            refreshBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                refreshSavedDataFromCurrentState();
+            });
+        }
 
         // Store data on the box for updating
         box.saveData = saveResult.data;
@@ -840,6 +991,10 @@ if (window.pdfjsLib) {
     }
 
     function formatSavedInformation(saveData) {
+        if (saveData.overrideInfoText != null) {
+            return saveData.overrideInfoText;
+        }
+
         let combinedInfoText = "";
 
         // Start with PDF extracted info if exists (matches the actual combinedInfoText logic)
