@@ -538,9 +538,6 @@ if (window.pdfjsLib) {
             <div class="flex justify-between items-center mb-3 gap-2">
                 <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${displayName}</span>
                 <div class="flex items-center gap-1">
-                    <button class="refresh-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full" title="Refresh saved image and info">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </button>
                     <button class="edit-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full" title="Edit saved result in workspace">
                         <i class="bi bi-pencil"></i>
                     </button>
@@ -581,7 +578,6 @@ if (window.pdfjsLib) {
         const infoBox = box.querySelector('.save-info-box');
         const imageBox = box.querySelector('.save-image-box');
         const editBtn = box.querySelector('.edit-save-btn');
-        const refreshBtn = box.querySelector('.refresh-save-btn');
 
         async function copyTextOnly() {
             try {
@@ -663,30 +659,12 @@ if (window.pdfjsLib) {
             restoreSaveDataForEditing(saveResult.data);
         }
 
-        function refreshSavedDataFromCurrentState() {
-            const hasContent = CATEGORY_NAMES.some(cat => appState[cat] && appState[cat].img) || currentPdfExtractedInfo;
-            if (!hasContent) {
-                showSaveStatusMessage('No current state to refresh from.', 'error');
-                return;
-            }
-
-            const updatedData = buildCurrentSaveData(saveResult.data.fileName || '');
-            updateSaveResult(saveResult.id, updatedData);
-            showSaveStatusMessage('Saved image and information refreshed from current state.', 'success');
-        }
-
         infoBox.addEventListener('click', copyTextOnly);
         imageBox.addEventListener('click', copyTextAndImage);
         if (editBtn) {
             editBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 editSavedInformation();
-            });
-        }
-        if (refreshBtn) {
-            refreshBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                refreshSavedDataFromCurrentState();
             });
         }
 
