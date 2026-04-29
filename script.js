@@ -93,6 +93,15 @@ if (window.pdfjsLib) {
         let n = bstr.length; const u8arr = new Uint8Array(n); while (n--) { u8arr[n] = bstr.charCodeAt(n); } return new Blob([u8arr], { type: mime });
     }
 
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     function setButtonFeedback(button, message, isSuccess, duration = 2000, originalContentHTML) {
         const oldContent = originalContentHTML || button.innerHTML;
         button.innerHTML = message;
@@ -184,6 +193,30 @@ if (window.pdfjsLib) {
             if (!hasContent) {
                 showSaveStatusMessage('No content to save.', 'error');
                 return;
+            }
+
+            const saveValidationCategories = ['3D', '2D', 'SHINSEIZU'];
+            const countsByCategory = {};
+            saveValidationCategories.forEach(categoryName => {
+                countsByCategory[categoryName] = getDrawnColorCounts(categoryName);
+            });
+
+            const hasAnyDrawnBoxes = Object.values(countsByCategory).some(counts => counts.total > 0);
+            if (hasAnyDrawnBoxes) {
+                const totals = new Set(Object.values(countsByCategory).map(c => c.total));
+                const reds = new Set(Object.values(countsByCategory).map(c => c.red));
+                const blues = new Set(Object.values(countsByCategory).map(c => c.blue));
+
+                if (totals.size > 1 || reds.size > 1 || blues.size > 1) {
+                    const mismatchLines = [];
+                    if (totals.size > 1) mismatchLines.push('Total boxes differ across categories.');
+                    if (reds.size > 1) mismatchLines.push('Red boxes differ across categories.');
+                    if (blues.size > 1) mismatchLines.push('Blue boxes differ across categories.');
+                    const boxCountStatusHtml = buildMismatchCountHtml(countsByCategory);
+                    showPopupAlert('Cannot Save', `Box count mismatch detected.\n${mismatchLines.join('\n')}\n\nCurrent counts:\n${boxCountStatusHtml}`, 'error');
+                    showSaveStatusMessage('Save blocked due to box count mismatch.', 'error');
+                    return;
+                }
             }
 
             const saveData = {
@@ -429,55 +462,82 @@ if (window.pdfjsLib) {
         });
 
         const infoBox = box.querySelector('.save-info-box');
-        infoBox.addEventListener('click', async () => {
-            try {
-                if (savedInfo) {
-                    await navigator.clipboard.writeText(savedInfo);
-
-                    // Visual feedback
-                    infoBox.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                    infoBox.style.borderColor = 'rgb(59, 130, 246)';
-
-                    setTimeout(() => {
-                        infoBox.style.backgroundColor = '';
-                        infoBox.style.borderColor = '';
-                    }, 1000);
-
-                    showSaveStatusMessage('Information copied to clipboard!', 'success');
-                } else {
-                    showSaveStatusMessage('No information to copy.', 'error');
-                }
-            } catch (err) {
-                console.error('Failed to copy info:', err);
-                showSaveStatusMessage('Failed to copy information.', 'error');
-            }
-        });
-
         const imageBox = box.querySelector('.save-image-box');
-        imageBox.addEventListener('click', async () => {
+
+        async function copyTextOnly() {
             try {
-                if (compiledImageData) {
-                    const blob = dataURLtoBlob(compiledImageData);
-                    await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
-
-                    // Visual feedback
-                    imageBox.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
-                    imageBox.style.borderColor = 'rgb(34, 197, 94)';
-
-                    setTimeout(() => {
-                        imageBox.style.backgroundColor = '';
-                        imageBox.style.borderColor = '';
-                    }, 1000);
-
-                    showSaveStatusMessage('Image copied to clipboard!', 'success');
-                } else {
-                    showSaveStatusMessage('No image to copy.', 'error');
+                if (!savedInfo) {
+                    showSaveStatusMessage('No information to copy.', 'error');
+                    return;
                 }
+
+                await navigator.clipboard.writeText(savedInfo);
+
+                infoBox.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                infoBox.style.borderColor = 'rgb(59, 130, 246)';
+                setTimeout(() => {
+                    infoBox.style.backgroundColor = '';
+                    infoBox.style.borderColor = '';
+                }, 1000);
+
+                showSaveStatusMessage('Text copied to clipboard!', 'success');
             } catch (err) {
-                console.error('Failed to copy image from save box:', err);
-                showSaveStatusMessage('Failed to copy image.', 'error');
+                console.error('Failed to copy text:', err);
+                showSaveStatusMessage('Failed to copy text.', 'error');
             }
-        });
+        }
+
+        async function copyTextAndImage() {
+            try {
+                if (!savedInfo) {
+                    showSaveStatusMessage('No information to copy.', 'error');
+                    return;
+                }
+                if (!compiledImageData) {
+                    showSaveStatusMessage('No image to copy.', 'error');
+                    return;
+                }
+
+                const blob = dataURLtoBlob(compiledImageData);
+                const textBlob = new Blob([savedInfo], { type: 'text/plain' });
+                const htmlBlob = new Blob([
+                    `<div><img src="${compiledImageData}" alt="Saved image" style="max-width:100%; display:block; margin-bottom:12px;"><p style="white-space:pre-wrap; font-family:inherit;">${escapeHtml(savedInfo)}</p></div>`
+                ], { type: 'text/html' });
+
+                const clipboardItem = new ClipboardItem({
+                    'text/plain': Promise.resolve(textBlob),
+                    'text/html': Promise.resolve(htmlBlob),
+                    [blob.type]: Promise.resolve(blob)
+                });
+
+                await navigator.clipboard.write([clipboardItem]);
+
+                imageBox.style.backgroundColor = 'rgba(59, 130, 246, 0.15)';
+                imageBox.style.borderColor = 'rgb(59, 130, 246)';
+                setTimeout(() => {
+                    imageBox.style.backgroundColor = '';
+                    imageBox.style.borderColor = '';
+                }, 1000);
+
+                showSaveStatusMessage('Information and image copied to clipboard!', 'success');
+            } catch (err) {
+                console.error('Failed to copy save data:', err);
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    try {
+                        await navigator.clipboard.writeText(savedInfo);
+                        showSaveStatusMessage('Text copied, but image copy is unsupported.', 'warning');
+                    } catch (textErr) {
+                        console.error('Fallback text copy failed:', textErr);
+                        showSaveStatusMessage('Failed to copy save data.', 'error');
+                    }
+                } else {
+                    showSaveStatusMessage('Failed to copy save data.', 'error');
+                }
+            }
+        }
+
+        infoBox.addEventListener('click', copyTextOnly);
+        imageBox.addEventListener('click', copyTextAndImage);
 
         // Store data on the box for updating
         box.saveData = saveResult.data;
@@ -1458,6 +1518,117 @@ async function handlePdfData(data, fileName) {
         return { canvas: itemCanvas, width: itemCanvasWidth, height: itemCanvasHeight, categoryName: categoryName };
     }
 
+    function getDrawnRectCount(categoryName) {
+        const categoryState = appState[categoryName];
+        if (!categoryState || !categoryState.history || categoryState.historyIndex < 0 || categoryState.historyIndex >= categoryState.history.length) {
+            return 0;
+        }
+        return (categoryState.history[categoryState.historyIndex] || []).length;
+    }
+
+    function getDrawnColorCounts(categoryName) {
+        const categoryState = appState[categoryName];
+        const counts = { total: 0, red: 0, blue: 0 };
+        if (!categoryState || !categoryState.history || categoryState.historyIndex < 0 || categoryState.historyIndex >= categoryState.history.length) {
+            return counts;
+        }
+        const rects = categoryState.history[categoryState.historyIndex] || [];
+        counts.total = rects.length;
+        rects.forEach(rect => {
+            if (rect.color === 'blue') counts.blue += 1;
+            else if (rect.color === 'red') counts.red += 1;
+        });
+        return counts;
+    }
+
+    function createPopupAlertModal() {
+        const overlay = document.createElement('div');
+        overlay.id = 'popupAlertModal';
+        overlay.className = 'fixed inset-0 z-[90] bg-black/60 flex items-center justify-center p-4 hidden opacity-0 transition-all duration-300 ease-custom-ease';
+        overlay.innerHTML = `
+            <div class="alert-modal-box bg-theme-surface dark:bg-darkTheme-surface border border-theme-border dark:border-darkTheme-border rounded-2xl shadow-2xl w-full max-w-lg transform transition-all duration-300 ease-custom-ease scale-95">
+                <div class="p-6">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <h2 id="popupAlertTitle" class="text-xl font-semibold text-theme-text-primary dark:text-darkTheme-text-primary mb-3"></h2>
+                            <div id="popupAlertMessage" class="text-sm text-theme-text-muted dark:text-darkTheme-text-muted whitespace-pre-wrap"></div>
+                        </div>
+                        <button id="popupAlertCloseButton" type="button" class="text-theme-text-muted dark:text-darkTheme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div class="mt-6 flex justify-end">
+                        <button id="popupAlertOkButton" type="button" class="px-4 py-2 rounded-lg bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast font-semibold hover:opacity-95 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-theme-accent dark:focus:ring-darkTheme-accent">OK</button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        const closeModal = () => {
+            overlay.classList.add('opacity-0');
+            overlay.querySelector('.alert-modal-box')?.classList.add('scale-95');
+            setTimeout(() => overlay.classList.add('hidden'), 200);
+        };
+
+        overlay.addEventListener('click', (event) => {
+            if (event.target === overlay) {
+                closeModal();
+            }
+        });
+
+        const closeButton = overlay.querySelector('#popupAlertCloseButton');
+        const okButton = overlay.querySelector('#popupAlertOkButton');
+        if (closeButton) closeButton.addEventListener('click', closeModal);
+        if (okButton) okButton.addEventListener('click', closeModal);
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !overlay.classList.contains('hidden')) {
+                closeModal();
+            }
+        });
+
+        return overlay;
+    }
+
+    function buildMismatchCountHtml(countsByCategory) {
+        const categories = Object.entries(countsByCategory);
+        if (categories.length === 0) return '';
+
+        const [referenceCategory, referenceCounts] = categories[0];
+        return categories.map(([category, counts]) => {
+            const line = `${category}: total=${counts.total}, red=${counts.red}, blue=${counts.blue}`;
+            const differs = counts.total !== referenceCounts.total || counts.red !== referenceCounts.red || counts.blue !== referenceCounts.blue;
+            return differs ? `<span class="text-red-600 dark:text-red-400">${line}</span>` : line;
+        }).join('<br>');
+    }
+
+    function showPopupAlert(title, message, type = 'default') {
+        let overlay = document.getElementById('popupAlertModal');
+        if (!overlay) overlay = createPopupAlertModal();
+
+        const titleEl = overlay.querySelector('#popupAlertTitle');
+        const messageEl = overlay.querySelector('#popupAlertMessage');
+        if (titleEl) {
+            titleEl.textContent = title;
+            titleEl.className = 'text-xl font-semibold mb-3';
+            if (type === 'error') {
+                titleEl.classList.add('text-red-600', 'dark:text-red-400');
+            } else {
+                titleEl.classList.add('text-theme-text-primary', 'dark:text-darkTheme-text-primary');
+            }
+        }
+        if (messageEl) {
+            messageEl.innerHTML = message.replace(/\n/g, '<br>');
+            messageEl.className = 'text-sm whitespace-pre-wrap text-theme-text-primary dark:text-darkTheme-text-primary';
+        }
+
+        overlay.classList.remove('hidden');
+        overlay.classList.remove('opacity-0');
+        overlay.classList.add('opacity-100');
+        const modalBox = overlay.querySelector('.alert-modal-box');
+        if (modalBox) modalBox.classList.remove('scale-95');
+    }
+
     function handleFinishCompilation(finishButtonOriginalHTMLArgument) {
         finishButton.disabled = true;
         finishButton.innerHTML = '<span class="spinner-border spinner-border-sm animate-spin mr-2" role="status" aria-hidden="true" style="width: 1em; height: 1em; border-width: .2em;"></span>Compiling...';
@@ -1466,6 +1637,30 @@ async function handlePdfData(data, fileName) {
         setTimeout(() => {
             const compiledTopRowOrder = ["3D", "2D", "SHINSEIZU"];
             const compiledExcelCategory = "EXCEL";
+
+            const countsByCategory = {
+                '3D': getDrawnColorCounts('3D'),
+                '2D': getDrawnColorCounts('2D'),
+                'SHINSEIZU': getDrawnColorCounts('SHINSEIZU')
+            };
+
+            const totals = new Set(Object.values(countsByCategory).map(c => c.total));
+            const reds = new Set(Object.values(countsByCategory).map(c => c.red));
+            const blues = new Set(Object.values(countsByCategory).map(c => c.blue));
+
+            if (totals.size > 1 || reds.size > 1 || blues.size > 1) {
+                const mismatchLines = [];
+                if (totals.size > 1) mismatchLines.push('Total boxes differ across categories.');
+                if (reds.size > 1) mismatchLines.push('Red boxes differ across categories.');
+                if (blues.size > 1) mismatchLines.push('Blue boxes differ across categories.');
+
+                const boxCountStatusHtml = buildMismatchCountHtml(countsByCategory);
+            showPopupAlert('Box Count Mismatch', `Box count mismatch detected.\n${mismatchLines.join('\n')}\n\nCurrent counts:\n${boxCountStatusHtml}`, 'error');
+                finishButton.innerHTML = finishButtonOriginalHTMLArgument;
+                updateFinishButtonState();
+                return;
+            }
+
             let allPreparedItemsMap = {};
             let hasAnyImageForLayout = false;
             CATEGORY_NAMES.forEach(categoryName => {
