@@ -529,19 +529,19 @@ if (window.pdfjsLib) {
         const boxId = saveResult.id;
         const box = document.createElement('div');
         box.id = boxId;
-        box.className = 'save-result-box bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl p-4 opacity-0 scale-95 transition-all duration-200';
+        box.className = 'save-result-box animate-slide-in bg-white dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-600 rounded-lg shadow-2xl p-4 opacity-0 scale-95 transition-all duration-200';
 
         const displayName = saveResult.data.fileName || 'Untitled';
         const timeString = new Date(saveResult.timestamp).toLocaleString();
 
         box.innerHTML = `
-            <div class="flex justify-between items-center mb-3 gap-2">
+            <div class="save-result-box-header animate-header-slide-in flex justify-between items-center mb-3 gap-2">
                 <span class="text-sm font-semibold text-gray-800 dark:text-gray-200">${displayName}</span>
-                <div class="flex items-center gap-1">
-                    <button class="edit-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full" title="Edit saved result in workspace">
+                <div class="save-result-box-actions flex items-center gap-1">
+                    <button class="edit-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 border border-gray-200 dark:border-gray-600 rounded-full transition-all duration-200" title="Edit saved result in workspace">
                         <i class="bi bi-pencil"></i>
                     </button>
-                    <button class="close-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-full" title="Remove saved result">
+                    <button class="close-save-btn text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 p-2 rounded-full transition-all duration-200" title="Remove saved result">
                         <i class="bi bi-x-lg"></i>
                     </button>
                 </div>
@@ -805,10 +805,54 @@ if (window.pdfjsLib) {
         }
     }
 
-    
+    function triggerEmptySaveResultsShake() {
+        if (!saveResultsToggleBtn) return;
+        saveResultsToggleBtn.classList.remove('shake-empty');
+        void saveResultsToggleBtn.offsetWidth;
+        saveResultsToggleBtn.classList.add('shake-empty');
+        setTimeout(() => {
+            if (saveResultsToggleBtn) {
+                saveResultsToggleBtn.classList.remove('shake-empty');
+            }
+        }, 800);
+    }
+
     function showSaveResultsContainer() {
         if (saveResultsContainer && saveResultsToggleBtn) {
+            const hasSavedResults = saveResults && saveResults.length > 0;
+            if (!hasSavedResults) {
+                triggerEmptySaveResultsShake();
+                return;
+            }
+
             saveResultsContainer.classList.remove('hidden');
+            saveResultsContainer.classList.remove('animate-save-results-panel');
+            void saveResultsContainer.offsetWidth;
+            saveResultsContainer.classList.add('animate-save-results-panel');
+
+            const panelHeader = saveResultsContainer.querySelector('.save-results-panel-header');
+            if (panelHeader) {
+                panelHeader.classList.remove('animate-save-results-header');
+                void panelHeader.offsetWidth;
+                panelHeader.classList.add('animate-save-results-header');
+            }
+
+            // Restart save result box animations when the panel is shown again
+            if (saveResultsBoxesContainer) {
+                const boxes = saveResultsBoxesContainer.querySelectorAll('.save-result-box');
+                boxes.forEach(box => {
+                    box.classList.remove('animate-slide-in');
+                    void box.offsetWidth;
+                    box.classList.add('animate-slide-in');
+
+                    const header = box.querySelector('.save-result-box-header');
+                    if (header) {
+                        header.classList.remove('animate-header-slide-in');
+                        void header.offsetWidth;
+                        header.classList.add('animate-header-slide-in');
+                    }
+                });
+            }
 
             // Move toggle button to the left side of the container
             saveResultsToggleBtn.classList.add('showing-container');

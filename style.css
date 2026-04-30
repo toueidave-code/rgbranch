@@ -129,10 +129,58 @@ html {
     }
 }
 
-.save-result-box {
-    animation: saveBoxSlideIn 0.3s ease-out;
+@keyframes saveBoxHeaderSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(24px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes saveResultsPanelSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes saveResultsHeaderSlideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.save-results-panel {
     max-height: 90vh;
     overflow-y: auto;
+}
+
+.save-results-panel.animate-save-results-panel {
+    animation: saveResultsPanelSlideIn 0.3s ease-out;
+}
+
+.save-results-panel-header.animate-save-results-header {
+    animation: saveResultsHeaderSlideIn 0.25s ease-out;
+}
+
+.save-result-box.animate-slide-in {
+    animation: saveBoxSlideIn 0.3s ease-out;
+}
+
+.save-result-box-header.animate-header-slide-in {
+    animation: saveBoxHeaderSlideIn 0.25s ease-out;
 }
 
 /* Save Result Box Hover Effects */
