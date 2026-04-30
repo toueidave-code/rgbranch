@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RAIN GUTTER DEPARTMENT</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              theme: {
+                background: 'rgb(255, 255, 255)',
+                surface: 'rgb(247, 247, 247)',
+                border: 'rgb(230, 230, 230)',
+                text: {
+                  primary: 'rgb(5, 5, 5)',
+                  muted: 'rgb(100, 100, 100)',
+                },
+                accent: 'rgb(5, 5, 5)',
+                'accent-contrast': 'rgb(255, 255, 255)'
+              },
+              darkTheme: {
+                background: 'rgb(5, 5, 5)',
+                surface: 'rgb(20, 20, 20)',
+                border: 'rgb(45, 45, 45)',
+                text: {
+                  primary: 'rgb(250, 250, 250)',
+                  muted: 'rgb(150, 150, 150)',
+                },
+                accent: 'rgb(250, 250, 250)',
+                'accent-contrast': 'rgb(5, 5, 5)'
+              },
+              success: '#28a745',
+              danger: '#dc3545'
+            },
+            fontFamily: {
+              sans: ['Sora', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif']
+            },
+            transitionTimingFunction: {
+              'custom-ease': 'cubic-bezier(0.4, 0, 0.2, 1)'
+            },
+            boxShadow: {
+              'focus-ring': '0 0 0 3px rgba(var(--theme-accent-rgb), 0.3)',
+              subtle: '0 4px 12px rgba(0, 0, 0, 0.05)',
+              'subtle-dark': '0 4px 12px rgba(0, 0, 0, 0.2)'
+            }
+          }
+        }
+      };
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+  </head>
+  <body class="bg-theme-background dark:bg-darkTheme-background text-theme-text-primary dark:text-darkTheme-text-primary antialiased transition-colors duration-300 ease-custom-ease">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
