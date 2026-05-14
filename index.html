@@ -267,7 +267,32 @@
             </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js';
+        import { getDatabase, ref, push, onChildAdded, onValue } from 'https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js';
+
+        // Firebase configuration - REPLACE WITH YOUR OWN CONFIG
+        const firebaseConfig = {
+            apiKey: "AIzaSyCx6eLhz-qzbh6Iw0R-XZ21vez_ngrGsCU",
+            authDomain: "rgchat-575f7.firebaseapp.com",
+            databaseURL: "https://rgchat-575f7-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "rgchat-575f7",
+            storageBucket: "rgchat-575f7.firebasestorage.app",
+            messagingSenderId: "407587735408",
+            appId: "1:407587735408:web:555aead3306c513fc9f1b5",
+            measurementId: "G-J3FY51M58D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.firebaseApp = app;
+        window.firebaseDb = db;
+        window.firebaseRef = ref;
+        window.firebasePush = push;
+        window.firebaseOnChildAdded = onChildAdded;
+        window.firebaseOnValue = onValue;
+    </script>
     <script src="script.js"></script>
 
     

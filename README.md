@@ -1,24 +1,21 @@
 # rgbranch
 
-## Local chat backend
+Static web app with Firebase real-time chat integration.
 
-This project now includes a simple open-source room chat backend using Express and Socket.io.
+## Setup Firebase
 
-### Run locally
+1. Create a Firebase project at https://console.firebase.google.com/
+2. Enable Realtime Database.
+3. Get your Firebase config (API key, project ID, etc.).
+4. Replace the placeholder config in `index.html` with your actual config.
 
-1. Install dependencies:
-   ```bash
-   npm install
-   ```
-2. Start the server:
-   ```bash
-   npm start
-   ```
-3. Open `http://localhost:3000` in your browser.
+## Run locally
 
-### Features
+Open `index.html` in a browser. No server needed for Firebase integration.
 
-- Shared room chat for all connected clients
-- Real-time message broadcasting using Socket.io
-- Simple static server for `index.html`, `script.js`, and `style.css`
-- Local fallback storage when backend is unavailable
+## Chat Features
+
+- Real-time room chat using Firebase Realtime Database.
+- Messages persist and sync across all connected users.
+- Free tier: 1 GB storage, 100 concurrent connections.
+- Fallback to localStorage if Firebase fails.

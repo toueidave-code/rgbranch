@@ -1,12 +1,9 @@
 {
-  "name": "rgbranch-chat-backend",
+  "name": "rgbranch",
   "version": "1.0.0",
   "private": true,
-  "scripts": {
-    "start": "node server.js"
-  },
+  "description": "Static web app with Firebase chat integration",
   "dependencies": {
-    "express": "^4.18.4",
-    "socket.io": "^4.7.2"
+    "firebase": "^12.13.0"
   }
 }

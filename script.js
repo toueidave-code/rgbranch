@@ -100,8 +100,9 @@ if (window.pdfjsLib) {
 
     const currentUser = createChatUser();
     let chatRoomMessages = [];
-    let socket = null;
-    let isSocketConnected = false;
+    let firebaseConnected = false;
+    const roomPath = '/rooms/main/messages';
+
 
     // Save System Global Variables
     let saveResults = loadResultsFromStorage(); // Array to track multiple save results
@@ -1863,42 +1864,36 @@ async function handlePdfData(data, fileName) {
         }
     }
 
-    function setupChatSocket() {
-        if (typeof io !== 'function') return;
-        try {
-            socket = io();
-
-            socket.on('connect', () => {
-                isSocketConnected = true;
-                console.info('Connected to chat backend');
-            });
-
-            socket.on('disconnect', () => {
-                isSocketConnected = false;
-                console.info('Disconnected from chat backend');
-            });
-
-            socket.on('roomHistory', history => {
-                if (Array.isArray(history)) {
-                    chatRoomMessages = history;
-                    saveRoomMessages();
-                    renderChatMessages();
-                }
-            });
-
-            socket.on('roomMessage', message => {
-                if (!message || typeof message !== 'object') return;
-                chatRoomMessages.push(message);
-                saveRoomMessages();
-                renderChatMessages();
-            });
-
-            socket.on('connect_error', error => {
-                console.warn('Chat backend connection failed:', error);
-            });
-        } catch (error) {
-            console.warn('Chat socket setup failed:', error);
+    function setupFirebaseChat() {
+        if (!window.firebaseDb || !window.firebaseRef || !window.firebasePush || !window.firebaseOnChildAdded || !window.firebaseOnValue) {
+            console.warn('Firebase not loaded, falling back to local storage');
+            loadRoomMessages();
+            renderChatMessages();
+            return;
         }
+
+        const db = window.firebaseDb;
+        const messagesRef = window.firebaseRef(db, roomPath);
+
+        // Load initial messages
+        window.firebaseOnValue(messagesRef, (snapshot) => {
+            const data = snapshot.val();
+            if (data) {
+                chatRoomMessages = Object.values(data).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+            } else {
+                chatRoomMessages = [];
+            }
+            saveRoomMessages(); // Save to localStorage as backup
+            renderChatMessages();
+            console.info('Firebase room messages updated, total:', chatRoomMessages.length);
+        }, (error) => {
+            console.warn('Firebase load error:', error);
+            loadRoomMessages(); // Fallback
+            renderChatMessages();
+        });
+
+        firebaseConnected = true;
+        console.info('Firebase chat connected');
     }
 
     function saveRoomMessages() {
@@ -1931,7 +1926,7 @@ async function handlePdfData(data, fileName) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function addMessageToRoom(text, senderId, senderLabel, sendToServer = true) {
+    function addMessageToRoom(text, senderId, senderLabel) {
         const message = {
             senderId,
             senderLabel,
@@ -1939,8 +1934,11 @@ async function handlePdfData(data, fileName) {
             timestamp: new Date().toISOString()
         };
 
-        if (sendToServer && isSocketConnected && socket) {
-            socket.emit('chatMessage', message);
+        if (firebaseConnected && window.firebaseDb && window.firebasePush && window.firebaseRef) {
+            const db = window.firebaseDb;
+            const messagesRef = window.firebaseRef(db, roomPath);
+            console.info('Firebase send:', message);
+            window.firebasePush(messagesRef, message);
         } else {
             chatRoomMessages.push(message);
             saveRoomMessages();
@@ -1977,7 +1975,7 @@ async function handlePdfData(data, fileName) {
         const messageText = chatInput?.value.trim();
         if (!messageText) return;
 
-        addMessageToRoom(messageText, currentUser.id, currentUser.label, true);
+        addMessageToRoom(messageText, currentUser.id, currentUser.label);
         if (chatInput) chatInput.value = '';
         openChatWindow();
     }
@@ -2794,7 +2792,7 @@ async function handlePdfData(data, fileName) {
                     // Initialize saved results UI from localStorage
                     initializeSavedResultsUI();
                     loadRoomMessages();
-                    setupChatSocket();
+                    setupFirebaseChat();
                     renderChatMessages();
                 }
 
