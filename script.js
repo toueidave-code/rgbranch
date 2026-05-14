@@ -50,6 +50,8 @@ if (window.pdfjsLib) {
     const chatToggleBtn = document.getElementById('chatToggleBtn');
     const chatWindow = document.getElementById('chatWindow');
     const chatCloseBtn = document.getElementById('chatCloseBtn');
+    const chatSettingsBtn = document.getElementById('chatSettingsBtn');
+    const chatActiveThreadLabel = document.getElementById('chatActiveThreadLabel');
     const chatForm = document.getElementById('chatForm');
     const chatInput = document.getElementById('chatInput');
     const chatMessages = document.getElementById('chatMessages');
@@ -102,6 +104,31 @@ if (window.pdfjsLib) {
     let chatRoomMessages = [];
     let firebaseConnected = false;
     const roomPath = '/rooms/main/messages';
+
+    function updateChatUserLabel() {
+        if (!chatActiveThreadLabel) return;
+        chatActiveThreadLabel.textContent = `Room chat · You: ${currentUser.label}`;
+    }
+
+    function setChatUsername(newLabel) {
+        if (!newLabel) return;
+        currentUser.label = newLabel;
+        try {
+            localStorage.setItem(chatUserKey, JSON.stringify(currentUser));
+        } catch (error) {
+            console.warn('Failed to save chat username:', error);
+        }
+        updateChatUserLabel();
+    }
+
+    function promptChatUsername() {
+        const defaultName = currentUser.label || '';
+        const input = prompt('Enter your chat display name', defaultName);
+        if (!input) return;
+        const newLabel = input.trim();
+        if (!newLabel) return;
+        setChatUsername(newLabel);
+    }
 
 
     // Save System Global Variables
@@ -2725,6 +2752,10 @@ async function handlePdfData(data, fileName) {
 
         document.addEventListener('keydown', handleChatEscape);
 
+        if (chatSettingsBtn) {
+            chatSettingsBtn.addEventListener('click', promptChatUsername);
+        }
+
         if (duplicateWindowBtn) {
             duplicateWindowBtn.addEventListener('click', function() {
                 const icon = this.querySelector('i');
@@ -2793,6 +2824,7 @@ async function handlePdfData(data, fileName) {
                     initializeSavedResultsUI();
                     loadRoomMessages();
                     setupFirebaseChat();
+                    updateChatUserLabel();
                     renderChatMessages();
                 }
 

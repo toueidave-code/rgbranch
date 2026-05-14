@@ -284,6 +284,20 @@ html {
     border-bottom-left-radius: 0.5rem;
 }
 
+.dark #chatWindow .chat-message.user {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgb(245, 245, 245);
+}
+
+.dark #chatWindow .chat-message.bot {
+    background: rgba(30, 30, 30, 0.85);
+    color: rgb(235, 235, 235);
+}
+
+.dark #chatWindow .chat-message .meta {
+    color: rgba(203, 213, 225, 0.8);
+}
+
 .chat-message .meta {
     font-size: 0.68rem;
     color: rgba(107, 114, 128, 1);
