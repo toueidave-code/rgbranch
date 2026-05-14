@@ -239,6 +239,33 @@
 
        
 
+            <div id="chatWidget" class="fixed bottom-6 right-6 z-[90] flex flex-col items-end gap-3">
+                <div id="chatWindow" class="hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-theme-border dark:border-darkTheme-border bg-theme-surface dark:bg-darkTheme-surface shadow-2xl transition-all duration-200 ease-custom-ease">
+                    <div class="flex items-center justify-between gap-3 px-4 py-3 bg-theme-background dark:bg-darkTheme-background border-b border-theme-border dark:border-darkTheme-border">
+                        <div class="flex items-center gap-3">
+                            <i class="bi bi-chat-dots text-xl"></i>
+                            <div>
+                                <p class="text-sm font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Room Chat</p>
+                                <p id="chatActiveThreadLabel" class="text-xs text-theme-text-muted dark:text-darkTheme-text-muted">Enter the room to chat with everyone</p>
+                            </div>
+                        </div>
+                        <button id="chatCloseBtn" class="p-2 rounded-full text-theme-text-muted hover:text-theme-text-primary dark:hover:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent dark:focus:ring-darkTheme-accent" aria-label="Close chat window">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+                    <div id="chatMessages" class="chat-messages flex flex-col gap-3 p-4 overflow-y-auto text-sm text-theme-text-primary dark:text-darkTheme-text-primary" aria-live="polite"></div>
+                    <form id="chatForm" class="flex items-center gap-2 px-4 py-3 border-t border-theme-border dark:border-darkTheme-border" autocomplete="off">
+                        <input id="chatInput" type="text" placeholder="Type a message..." class="flex-1 rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background px-3 py-2 text-sm text-theme-text-primary dark:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" />
+                        <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-full bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-theme-accent" aria-label="Send chat message">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </form>
+                </div>
+                <button id="chatToggleBtn" class="flex h-16 w-16 items-center justify-center rounded-full bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast shadow-2xl shadow-black/15 hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-theme-accent/30" aria-label="Open chat" aria-expanded="false">
+                    <i class="bi bi-chat-dots text-2xl"></i>
+                </button>
+            </div>
+
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
     <script src="script.js"></script>
 

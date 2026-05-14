@@ -218,8 +218,103 @@ html {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    transform: translateX(400px);
-    transition: all 0.3s ease-out;
+}
+
+/* Chat widget styles */
+#chatWidget {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    z-index: 90;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+#chatWindow {
+    width: 22rem;
+    max-width: calc(100vw - 2rem);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: opacity 0.25s ease, transform 0.25s ease, visibility 0.25s ease;
+    transform-origin: bottom right;
+}
+
+#chatWindow.hidden {
+    opacity: 0;
+    transform: translateY(12px);
+    visibility: hidden;
+}
+
+#chatMessages {
+    min-height: 12rem;
+    max-height: calc(80vh - 130px);
+    overflow-y: auto;
+}
+
+.chat-message {
+    display: inline-flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    max-width: 85%;
+    padding: 0.85rem 1rem;
+    border-radius: 1.35rem;
+    line-height: 1.4;
+    word-break: break-word;
+}
+
+.chat-message p {
+    margin: 0;
+}
+
+.chat-message.user {
+    align-self: flex-end;
+    background: rgba(5, 5, 5, 0.08);
+    color: rgb(15, 15, 15);
+    border-bottom-right-radius: 0.5rem;
+}
+
+.chat-message.bot {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.94);
+    color: rgb(25, 25, 25);
+    border-bottom-left-radius: 0.5rem;
+}
+
+.chat-message .meta {
+    font-size: 0.68rem;
+    color: rgba(107, 114, 128, 1);
+    text-align: right;
+}
+
+#chatForm input {
+    min-width: 0;
+}
+
+#chatForm {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#chatToggleBtn,
+#chatCloseBtn,
+#chatForm button {
+    outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    #chatWidget {
+        right: 1rem;
+        bottom: 1rem;
+    }
+
+    #chatWindow {
+        width: calc(100vw - 1.5rem);
+    }
 }
 
 /* Dark mode styles for floating status message */

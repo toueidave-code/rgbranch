@@ -47,6 +47,13 @@ if (window.pdfjsLib) {
     const saveCountBadge = document.getElementById('saveCountBadge');
     const clearAllSavesBtn = document.getElementById('clearAllSavesBtn');
     const saveResultsBoxesContainer = document.getElementById('saveResultsBoxesContainer');
+    const chatToggleBtn = document.getElementById('chatToggleBtn');
+    const chatWindow = document.getElementById('chatWindow');
+    const chatCloseBtn = document.getElementById('chatCloseBtn');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const duplicateWindowBtn = document.getElementById('duplicateWindowBtn');
 
     // Hamburger Menu Elements
     const hamburgerButton = document.getElementById('hamburgerButton');
@@ -72,6 +79,11 @@ if (window.pdfjsLib) {
     let isClockActive = false;
     let isPanning = false;
     let lastPanX, lastPanY;
+    const currentUser = { id: 'me', label: 'You#0001' };
+    const chatRoomKey = 'rgbranchRoomChat';
+    let chatRoomMessages = [];
+    const chatRoomParticipants = ['Alex#0001', 'Jade#4572', 'Mia#9921'];
+    let lastPeerReplyTimeout = null;
 
     // Save System Global Variables
     let saveResults = loadResultsFromStorage(); // Array to track multiple save results
@@ -1806,6 +1818,136 @@ async function handlePdfData(data, fileName) {
         if (modalBox) modalBox.classList.remove('scale-95');
     }
 
+    function formatChatTimestamp(value) {
+        const date = new Date(value);
+        const h = String(date.getHours()).padStart(2, '0');
+        const m = String(date.getMinutes()).padStart(2, '0');
+        return `${h}:${m}`;
+    }
+
+    function loadRoomMessages() {
+        try {
+            const stored = localStorage.getItem(chatRoomKey);
+            chatRoomMessages = stored ? JSON.parse(stored) : null;
+            if (!Array.isArray(chatRoomMessages) || chatRoomMessages.length === 0) {
+                chatRoomMessages = [
+                    { senderId: 'Alex#0001', senderLabel: 'Alex#0001', text: 'Welcome to the room! Feel free to say hi.', timestamp: new Date().toISOString() }
+                ];
+            }
+        } catch (error) {
+            console.warn('Failed to load room messages:', error);
+            chatRoomMessages = [
+                { senderId: 'Alex#0001', senderLabel: 'Alex#0001', text: 'Welcome to the room! Feel free to say hi.', timestamp: new Date().toISOString() }
+            ];
+        }
+    }
+
+    function saveRoomMessages() {
+        try {
+            localStorage.setItem(chatRoomKey, JSON.stringify(chatRoomMessages));
+        } catch (error) {
+            console.warn('Failed to save room messages:', error);
+        }
+    }
+
+    function renderChatMessages() {
+        if (!chatMessages) return;
+        chatMessages.innerHTML = '';
+
+        if (chatRoomMessages.length === 0) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'chat-message bot';
+            placeholder.innerHTML = `<p>The room is empty. Start the conversation with your first message.</p><div class="meta">Room · ${formatChatTimestamp(new Date())}</div>`;
+            chatMessages.appendChild(placeholder);
+            return;
+        }
+
+        chatRoomMessages.forEach(message => {
+            const messageDiv = document.createElement('div');
+            const isMe = message.senderId === currentUser.id;
+            messageDiv.className = `chat-message ${isMe ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = `<p>${escapeHtml(message.text)}</p><div class="meta">${escapeHtml(message.senderLabel)} · ${formatChatTimestamp(message.timestamp)}</div>`;
+            chatMessages.appendChild(messageDiv);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function addMessageToRoom(text, senderId, senderLabel) {
+        const message = {
+            senderId,
+            senderLabel,
+            text,
+            timestamp: new Date().toISOString()
+        };
+        chatRoomMessages.push(message);
+        saveRoomMessages();
+        renderChatMessages();
+        return message;
+    }
+
+    function generateRoomReply(userMessage) {
+        const participant = chatRoomParticipants[Math.floor(Math.random() * chatRoomParticipants.length)];
+        const normalized = userMessage.toLowerCase();
+        if (/\b(hi|hello|hey)\b/.test(normalized)) {
+            return { senderId: participant, senderLabel: participant, text: `Hi! ${participant} joined the room.` };
+        }
+        if (normalized.includes('help')) {
+            return { senderId: participant, senderLabel: participant, text: `I can help with that — what do you need?` };
+        }
+        if (normalized.includes('thanks') || normalized.includes('thank you')) {
+            return { senderId: participant, senderLabel: participant, text: `You are welcome! Happy to help.` };
+        }
+        return { senderId: participant, senderLabel: participant, text: `${participant} saw your message: "${userMessage}".` };
+    }
+
+    function openChatWindow() {
+        if (!chatWindow || !chatToggleBtn) return;
+        chatWindow.classList.remove('hidden');
+        chatToggleBtn.setAttribute('aria-expanded', 'true');
+        setTimeout(() => chatInput?.focus(), 150);
+    }
+
+    function closeChatWindow() {
+        if (!chatWindow || !chatToggleBtn) return;
+        chatWindow.classList.add('hidden');
+        chatToggleBtn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleChatWindow() {
+        if (!chatWindow) return;
+        if (chatWindow.classList.contains('hidden')) {
+            openChatWindow();
+        } else {
+            closeChatWindow();
+        }
+    }
+
+    function handleChatSubmit(event) {
+        event.preventDefault();
+        const messageText = chatInput?.value.trim();
+        if (!messageText) return;
+
+        addMessageToRoom(messageText, currentUser.id, currentUser.label);
+        if (chatInput) chatInput.value = '';
+        openChatWindow();
+
+        if (lastPeerReplyTimeout) {
+            clearTimeout(lastPeerReplyTimeout);
+        }
+
+        lastPeerReplyTimeout = setTimeout(() => {
+            const reply = generateRoomReply(messageText);
+            addMessageToRoom(reply.text, reply.senderId, reply.senderLabel);
+            lastPeerReplyTimeout = null;
+        }, 900);
+    }
+
+    function handleChatEscape(event) {
+        if (event.key === 'Escape' && chatWindow && !chatWindow.classList.contains('hidden')) {
+            closeChatWindow();
+        }
+    }
+
     function handleFinishCompilation(finishButtonOriginalHTMLArgument) {
         finishButton.disabled = true;
         finishButton.innerHTML = '<span class="spinner-border spinner-border-sm animate-spin mr-2" role="status" aria-hidden="true" style="width: 1em; height: 1em; border-width: .2em;"></span>Compiling...';
@@ -2531,6 +2673,31 @@ async function handlePdfData(data, fileName) {
             });
         }
 
+        if (chatToggleBtn) {
+            chatToggleBtn.addEventListener('click', toggleChatWindow);
+        }
+
+        if (chatCloseBtn) {
+            chatCloseBtn.addEventListener('click', closeChatWindow);
+        }
+
+        if (chatForm) {
+            chatForm.addEventListener('submit', handleChatSubmit);
+        }
+
+        document.addEventListener('keydown', handleChatEscape);
+
+        if (duplicateWindowBtn) {
+            duplicateWindowBtn.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                icon.classList.add('animate-pulse');
+                window.open(window.location.href, '_blank', 'noopener,noreferrer');
+                setTimeout(() => {
+                    icon.classList.remove('animate-pulse');
+                }, 1000);
+            });
+        }
+
         const debouncedResizeHandler = debounce(() => {
             setActiveCategoryButtonUI();
             drawInteractiveCanvas();
@@ -2586,22 +2753,9 @@ async function handlePdfData(data, fileName) {
 
                     // Initialize saved results UI from localStorage
                     initializeSavedResultsUI();
+                    loadRoomMessages();
+                    renderChatMessages();
                 }
 
     document.addEventListener('DOMContentLoaded', initApp);
 })();
-// Duplicate window button functionality
-document.getElementById('duplicateWindowBtn').addEventListener('click', function() {
-    // Add visual feedback
-    const icon = this.querySelector('i');
-    icon.classList.add('animate-pulse');
-    
-    // Open new window with current URL
-    window.open(window.location.href, '_blank', 'noopener,noreferrer');
-    
-    // Remove animation after 1 second
-    setTimeout(() => {
-        icon.classList.remove('animate-pulse');
-    }, 1000);
-
-})(); // Close the main IIFE
