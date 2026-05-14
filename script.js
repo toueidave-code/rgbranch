@@ -79,11 +79,29 @@ if (window.pdfjsLib) {
     let isClockActive = false;
     let isPanning = false;
     let lastPanX, lastPanY;
-    const currentUser = { id: 'me', label: 'You#0001' };
     const chatRoomKey = 'rgbranchRoomChat';
+    const chatUserKey = 'rgbranchChatUser';
+
+    function createChatUser() {
+        try {
+            const storedUser = localStorage.getItem(chatUserKey);
+            if (storedUser) {
+                return JSON.parse(storedUser);
+            }
+        } catch (error) {
+            console.warn('Failed to parse stored chat user:', error);
+        }
+
+        const randomId = Math.floor(Math.random() * 9000) + 1000;
+        const user = { id: `user-${randomId}`, label: `You#${randomId}` };
+        localStorage.setItem(chatUserKey, JSON.stringify(user));
+        return user;
+    }
+
+    const currentUser = createChatUser();
     let chatRoomMessages = [];
-    const chatRoomParticipants = ['Alex#0001', 'Jade#4572', 'Mia#9921'];
-    let lastPeerReplyTimeout = null;
+    let socket = null;
+    let isSocketConnected = false;
 
     // Save System Global Variables
     let saveResults = loadResultsFromStorage(); // Array to track multiple save results
@@ -1828,17 +1846,58 @@ async function handlePdfData(data, fileName) {
     function loadRoomMessages() {
         try {
             const stored = localStorage.getItem(chatRoomKey);
-            chatRoomMessages = stored ? JSON.parse(stored) : null;
-            if (!Array.isArray(chatRoomMessages) || chatRoomMessages.length === 0) {
-                chatRoomMessages = [
-                    { senderId: 'Alex#0001', senderLabel: 'Alex#0001', text: 'Welcome to the room! Feel free to say hi.', timestamp: new Date().toISOString() }
-                ];
-            }
+            chatRoomMessages = stored ? JSON.parse(stored) : [];
         } catch (error) {
             console.warn('Failed to load room messages:', error);
+            chatRoomMessages = [];
+        }
+
+        if (!Array.isArray(chatRoomMessages)) {
+            chatRoomMessages = [];
+        }
+
+        if (chatRoomMessages.length === 0) {
             chatRoomMessages = [
-                { senderId: 'Alex#0001', senderLabel: 'Alex#0001', text: 'Welcome to the room! Feel free to say hi.', timestamp: new Date().toISOString() }
+                { senderId: 'system', senderLabel: 'Room Help', text: 'Welcome to the room chat. Messages are shared in real time when the backend is running.', timestamp: new Date().toISOString() }
             ];
+        }
+    }
+
+    function setupChatSocket() {
+        if (typeof io !== 'function') return;
+        try {
+            socket = io();
+
+            socket.on('connect', () => {
+                isSocketConnected = true;
+                console.info('Connected to chat backend');
+            });
+
+            socket.on('disconnect', () => {
+                isSocketConnected = false;
+                console.info('Disconnected from chat backend');
+            });
+
+            socket.on('roomHistory', history => {
+                if (Array.isArray(history)) {
+                    chatRoomMessages = history;
+                    saveRoomMessages();
+                    renderChatMessages();
+                }
+            });
+
+            socket.on('roomMessage', message => {
+                if (!message || typeof message !== 'object') return;
+                chatRoomMessages.push(message);
+                saveRoomMessages();
+                renderChatMessages();
+            });
+
+            socket.on('connect_error', error => {
+                console.warn('Chat backend connection failed:', error);
+            });
+        } catch (error) {
+            console.warn('Chat socket setup failed:', error);
         }
     }
 
@@ -1872,32 +1931,23 @@ async function handlePdfData(data, fileName) {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
-    function addMessageToRoom(text, senderId, senderLabel) {
+    function addMessageToRoom(text, senderId, senderLabel, sendToServer = true) {
         const message = {
             senderId,
             senderLabel,
             text,
             timestamp: new Date().toISOString()
         };
-        chatRoomMessages.push(message);
-        saveRoomMessages();
-        renderChatMessages();
-        return message;
-    }
 
-    function generateRoomReply(userMessage) {
-        const participant = chatRoomParticipants[Math.floor(Math.random() * chatRoomParticipants.length)];
-        const normalized = userMessage.toLowerCase();
-        if (/\b(hi|hello|hey)\b/.test(normalized)) {
-            return { senderId: participant, senderLabel: participant, text: `Hi! ${participant} joined the room.` };
+        if (sendToServer && isSocketConnected && socket) {
+            socket.emit('chatMessage', message);
+        } else {
+            chatRoomMessages.push(message);
+            saveRoomMessages();
+            renderChatMessages();
         }
-        if (normalized.includes('help')) {
-            return { senderId: participant, senderLabel: participant, text: `I can help with that — what do you need?` };
-        }
-        if (normalized.includes('thanks') || normalized.includes('thank you')) {
-            return { senderId: participant, senderLabel: participant, text: `You are welcome! Happy to help.` };
-        }
-        return { senderId: participant, senderLabel: participant, text: `${participant} saw your message: "${userMessage}".` };
+
+        return message;
     }
 
     function openChatWindow() {
@@ -1927,19 +1977,9 @@ async function handlePdfData(data, fileName) {
         const messageText = chatInput?.value.trim();
         if (!messageText) return;
 
-        addMessageToRoom(messageText, currentUser.id, currentUser.label);
+        addMessageToRoom(messageText, currentUser.id, currentUser.label, true);
         if (chatInput) chatInput.value = '';
         openChatWindow();
-
-        if (lastPeerReplyTimeout) {
-            clearTimeout(lastPeerReplyTimeout);
-        }
-
-        lastPeerReplyTimeout = setTimeout(() => {
-            const reply = generateRoomReply(messageText);
-            addMessageToRoom(reply.text, reply.senderId, reply.senderLabel);
-            lastPeerReplyTimeout = null;
-        }, 900);
     }
 
     function handleChatEscape(event) {
@@ -2754,6 +2794,7 @@ async function handlePdfData(data, fileName) {
                     // Initialize saved results UI from localStorage
                     initializeSavedResultsUI();
                     loadRoomMessages();
+                    setupChatSocket();
                     renderChatMessages();
                 }
 
