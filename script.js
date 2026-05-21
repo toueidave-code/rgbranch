@@ -83,6 +83,7 @@ if (window.pdfjsLib) {
     let lastPanX, lastPanY;
     const chatRoomKey = 'rgbranchRoomChat';
     const chatUserKey = 'rgbranchChatUser';
+    const chatPositionKey = 'rgbranchChatPosition';
 
     function createChatUser() {
         try {
@@ -926,6 +927,9 @@ if (window.pdfjsLib) {
                 arrow.textContent = '>';
             }
             saveResultsToggleBtn.title = 'Hide saved results';
+            
+            // Reposition chat button to avoid overlap
+            setTimeout(() => checkAndFixChatOverlay(), 100);
         }
     }
 
@@ -940,6 +944,9 @@ if (window.pdfjsLib) {
 
             // Reset transform and position to default
             saveResultsToggleBtn.style.transform = '';
+            
+            // Reposition chat button after save results is hidden
+            setTimeout(() => checkAndFixChatOverlay(), 100);
             saveResultsToggleBtn.style.right = '';
             saveResultsToggleBtn.style.removeProperty('--movement-percentage');
 
@@ -1891,6 +1898,107 @@ async function handlePdfData(data, fileName) {
         }
     }
 
+    // Chat notification system
+    let unreadChatCount = 0;
+    let notificationPermissionRequested = false;
+
+    function requestChatNotificationPermission() {
+        if (notificationPermissionRequested || typeof Notification === 'undefined') return;
+        notificationPermissionRequested = true;
+        
+        if (Notification.permission === 'default') {
+            Notification.requestPermission().catch(err => console.warn('Notification permission denied:', err));
+        }
+    }
+
+    function showChatNotification(senderLabel, messageText) {
+        if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+        
+        // Only notify if chat window is closed or not in focus
+        const chatWindow = document.getElementById('chatWindow');
+        if (chatWindow && chatWindow.classList.contains('hidden')) {
+            try {
+                const notification = new Notification('💬 New Chat Message', {
+                    body: `${senderLabel}: ${messageText.substring(0, 100)}${messageText.length > 100 ? '...' : ''}`,
+                    icon: '💬',
+                    tag: 'chat-notification',
+                    requireInteraction: false
+                });
+
+                notification.onclick = () => {
+                    window.focus();
+                    chatWindow.classList.remove('hidden');
+                    notification.close();
+                };
+
+                // Auto-close after 4 seconds
+                setTimeout(() => notification.close(), 4000);
+            } catch (error) {
+                console.warn('Failed to create notification:', error);
+            }
+        }
+    }
+
+    function playNotificationSound() {
+        try {
+            // Create a simple beep sound using Web Audio API
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 800;
+            oscillator.type = 'sine';
+            
+            gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.2);
+        } catch (error) {
+            console.warn('Failed to play notification sound:', error);
+        }
+    }
+
+    function updateUnreadBadge(count) {
+        unreadChatCount = count;
+        const chatBtn = document.getElementById('chatToggleBtn');
+        if (!chatBtn) return;
+        
+        let badge = chatBtn.querySelector('.chat-unread-badge');
+        
+        if (count > 0) {
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'chat-unread-badge';
+                badge.style.cssText = `
+                    position: absolute;
+                    top: -8px;
+                    right: -8px;
+                    background: #ef4444;
+                    color: white;
+                    border-radius: 50%;
+                    width: 24px;
+                    height: 24px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 12px;
+                    font-weight: bold;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    z-index: 100;
+                `;
+                chatBtn.style.position = 'relative';
+                chatBtn.appendChild(badge);
+            }
+            badge.textContent = count > 9 ? '9+' : count;
+        } else if (badge) {
+            badge.remove();
+        }
+    }
+
     function setupFirebaseChat() {
         if (!window.firebaseDb || !window.firebaseRef || !window.firebasePush || !window.firebaseOnChildAdded || !window.firebaseOnValue) {
             console.warn('Firebase not loaded, falling back to local storage');
@@ -1898,6 +2006,9 @@ async function handlePdfData(data, fileName) {
             renderChatMessages();
             return;
         }
+
+        // Request notification permission
+        requestChatNotificationPermission();
 
         const db = window.firebaseDb;
         const messagesRef = window.firebaseRef(db, roomPath);
@@ -1917,6 +2028,19 @@ async function handlePdfData(data, fileName) {
             console.warn('Firebase load error:', error);
             loadRoomMessages(); // Fallback
             renderChatMessages();
+        });
+
+        // Listen for new messages to show notifications
+        window.firebaseOnChildAdded(messagesRef, (snapshot) => {
+            const message = snapshot.val();
+            if (message && message.senderId !== currentUser.id) {
+                // New message from someone else
+                updateUnreadBadge(unreadChatCount + 1);
+                showChatNotification(message.senderLabel || 'Someone', message.text);
+                playNotificationSound();
+            }
+        }, (error) => {
+            console.warn('Firebase listener error:', error);
         });
 
         firebaseConnected = true;
@@ -1980,6 +2104,8 @@ async function handlePdfData(data, fileName) {
         chatWindow.classList.remove('hidden');
         chatToggleBtn.setAttribute('aria-expanded', 'true');
         setTimeout(() => chatInput?.focus(), 150);
+        // Clear unread badge when opening chat
+        updateUnreadBadge(0);
     }
 
     function closeChatWindow() {
@@ -2011,6 +2137,177 @@ async function handlePdfData(data, fileName) {
         if (event.key === 'Escape' && chatWindow && !chatWindow.classList.contains('hidden')) {
             closeChatWindow();
         }
+    }
+
+    function loadChatPosition() {
+        try {
+            const pos = localStorage.getItem(chatPositionKey);
+            if (pos) {
+                const { bottom, right } = JSON.parse(pos);
+                if (chatWidget) {
+                    chatWidget.style.bottom = bottom + 'px';
+                    chatWidget.style.right = right + 'px';
+                }
+            }
+        } catch (error) {
+            console.warn('Failed to load chat position:', error);
+        }
+    }
+
+    function saveChatPosition() {
+        try {
+            if (chatWidget) {
+                const pos = {
+                    bottom: parseInt(window.getComputedStyle(chatWidget).bottom),
+                    right: parseInt(window.getComputedStyle(chatWidget).right)
+                };
+                localStorage.setItem(chatPositionKey, JSON.stringify(pos));
+            }
+        } catch (error) {
+            console.warn('Failed to save chat position:', error);
+        }
+    }
+
+    function getElementsUnderPoint(x, y) {
+        const originalPointerEvents = chatWidget.style.pointerEvents;
+        chatWidget.style.pointerEvents = 'none';
+        const elements = document.elementsFromPoint(x, y);
+        chatWidget.style.pointerEvents = originalPointerEvents;
+        return elements;
+    }
+
+    function checkAndFixChatOverlay() {
+        if (!chatWidget) return;
+        
+        const chatRect = chatWidget.getBoundingClientRect();
+        const mainContainer = document.querySelector('.main-container');
+        const savePanel = document.getElementById('saveResultsContainer');
+        const sideMenu = document.getElementById('sideMenu');
+        
+        const overlaps = (rect1, rect2) => {
+            return rect1.left < rect2.right && rect1.right > rect2.left &&
+                   rect1.top < rect2.bottom && rect1.bottom > rect2.top;
+        };
+        
+        const padding = 20;
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        let newRight = parseInt(window.getComputedStyle(chatWidget).right);
+        let newBottom = parseInt(window.getComputedStyle(chatWidget).bottom);
+        let shouldMove = false;
+        
+        // Check overlap with main container
+        if (mainContainer) {
+            const mainRect = mainContainer.getBoundingClientRect();
+            
+            if (overlaps(chatRect, mainRect)) {
+                shouldMove = true;
+                if (chatRect.left < mainRect.right && chatRect.right > mainRect.left) {
+                    if (mainRect.left > viewportWidth / 2) {
+                        newRight = viewportWidth - mainRect.left + padding;
+                    } else {
+                        newRight = padding;
+                    }
+                }
+                
+                if (chatRect.top < mainRect.bottom && chatRect.bottom > mainRect.top) {
+                    if (mainRect.top > viewportHeight / 2) {
+                        newBottom = viewportHeight - mainRect.top + padding;
+                    } else {
+                        newBottom = padding;
+                    }
+                }
+            }
+        }
+        
+        // Check overlap with side menu if it's visible
+        if (sideMenu && !sideMenu.classList.contains('-translate-x-full')) {
+            const menuRect = sideMenu.getBoundingClientRect();
+            
+            if (overlaps(chatRect, menuRect)) {
+                shouldMove = true;
+                // Move chat to the right of the menu
+                newRight = padding;
+                newBottom = padding;
+            }
+        }
+        
+        // Check overlap with save results container
+        if (savePanel && !savePanel.classList.contains('hidden')) {
+            const saveRect = savePanel.getBoundingClientRect();
+            
+            if (overlaps(chatRect, saveRect)) {
+                shouldMove = true;
+                // Move chat to the left side of the save results panel
+                newRight = viewportWidth - saveRect.left + padding;
+            }
+        }
+        
+        if (shouldMove) {
+            chatWidget.style.bottom = newBottom + 'px';
+            chatWidget.style.right = newRight + 'px';
+            saveChatPosition();
+        }
+    }
+
+    function initChatDrag() {
+        if (!chatToggleBtn || !chatWidget) return;
+        
+        let isDragging = false;
+        let startX, startY, startRight, startBottom;
+        
+        const handleMouseDown = (e) => {
+            isDragging = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            startRight = parseInt(window.getComputedStyle(chatWidget).right);
+            startBottom = parseInt(window.getComputedStyle(chatWidget).bottom);
+            
+            chatToggleBtn.classList.add('dragging');
+            chatWidget.style.transition = 'none';
+        };
+        
+        const handleMouseMove = (e) => {
+            if (!isDragging) return;
+            
+            const deltaX = e.clientX - startX;
+            const deltaY = e.clientY - startY;
+            
+            const newRight = Math.max(0, startRight - deltaX);
+            const newBottom = Math.max(0, startBottom - deltaY);
+            
+            chatWidget.style.right = newRight + 'px';
+            chatWidget.style.bottom = newBottom + 'px';
+        };
+        
+        const handleMouseUp = () => {
+            if (!isDragging) return;
+            isDragging = false;
+            
+            chatToggleBtn.classList.remove('dragging');
+            chatWidget.style.transition = 'bottom 0.2s ease-out, right 0.2s ease-out';
+            
+            saveChatPosition();
+            setTimeout(() => checkAndFixChatOverlay(), 100);
+        };
+        
+        chatToggleBtn.addEventListener('mousedown', handleMouseDown);
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        
+        chatToggleBtn.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+        });
+        
+        document.addEventListener('touchmove', (e) => {
+            if (isDragging) {
+                const touch = e.touches[0];
+                handleMouseMove({ clientX: touch.clientX, clientY: touch.clientY });
+            }
+        });
+        
+        document.addEventListener('touchend', handleMouseUp);
     }
 
     function handleFinishCompilation(finishButtonOriginalHTMLArgument) {
@@ -2303,12 +2600,14 @@ async function handlePdfData(data, fileName) {
                 sideMenu.classList.remove('-translate-x-full');
                 menuOverlay.classList.remove('hidden');
                 setTimeout(() => menuOverlay.classList.remove('opacity-0'), 10);
+                setTimeout(() => checkAndFixChatOverlay(), 100);
             });
 
             const closeMenu = () => {
                 sideMenu.classList.add('-translate-x-full');
                 menuOverlay.classList.add('opacity-0');
                 setTimeout(() => menuOverlay.classList.add('hidden'), 300);
+                setTimeout(() => checkAndFixChatOverlay(), 100);
             };
 
             closeMenuButton.addEventListener('click', closeMenu);
@@ -2770,6 +3069,7 @@ async function handlePdfData(data, fileName) {
         const debouncedResizeHandler = debounce(() => {
             setActiveCategoryButtonUI();
             drawInteractiveCanvas();
+            checkAndFixChatOverlay();
         }, 150);
         window.addEventListener('resize', debouncedResizeHandler);
     }
@@ -2826,6 +3126,9 @@ async function handlePdfData(data, fileName) {
                     setupFirebaseChat();
                     updateChatUserLabel();
                     renderChatMessages();
+                    loadChatPosition();
+                    initChatDrag();
+                    checkAndFixChatOverlay();
                 }
 
     document.addEventListener('DOMContentLoaded', initApp);
