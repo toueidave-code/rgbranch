@@ -240,13 +240,16 @@
        
 
             <div id="chatWidget" class="fixed bottom-6 right-6 z-[90] flex flex-col items-end gap-3">
-                <div id="chatWindow" class="hidden w-80 max-w-[calc(100vw-2rem)] overflow-hidden rounded-3xl border border-theme-border dark:border-darkTheme-border bg-theme-surface dark:bg-darkTheme-surface shadow-2xl transition-all duration-200 ease-custom-ease">
-                    <div class="flex items-center justify-between gap-3 px-4 py-3 bg-theme-background dark:bg-darkTheme-background border-b border-theme-border dark:border-darkTheme-border">
+                <div id="chatWindow" class="relative hidden w-80 max-w-[calc(100vw-2rem)] overflow-visible rounded-3xl border border-theme-border dark:border-darkTheme-border bg-theme-surface dark:bg-darkTheme-surface shadow-2xl transition-all duration-200 ease-custom-ease">
+                    <div class="chat-header flex items-center justify-between gap-3 px-4 py-3 bg-theme-background dark:bg-darkTheme-background border-b border-theme-border dark:border-darkTheme-border">
                         <div class="flex items-center gap-3">
                             <i class="bi bi-chat-dots text-xl"></i>
                             <div>
                                 <p class="text-sm font-semibold text-theme-text-primary dark:text-darkTheme-text-primary">Room Chat</p>
-                                <p id="chatActiveThreadLabel" class="text-xs text-theme-text-muted dark:text-darkTheme-text-muted">Enter the room to chat with everyone</p>
+                                <div class="flex items-center gap-2 text-xs text-theme-text-muted dark:text-darkTheme-text-muted">
+                                    <span class="chat-status-dot" aria-hidden="true"></span>
+                                    <span id="chatActiveThreadLabel">Enter the room to chat with everyone</span>
+                                </div>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -260,11 +263,28 @@
                     </div>
                     <div id="chatMessages" class="chat-messages flex flex-col gap-3 p-4 overflow-y-auto text-sm text-theme-text-primary dark:text-darkTheme-text-primary" aria-live="polite"></div>
                     <form id="chatForm" class="flex items-center gap-2 px-4 py-3 border-t border-theme-border dark:border-darkTheme-border" autocomplete="off">
-                        <input id="chatInput" type="text" placeholder="Type a message..." class="flex-1 rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background px-3 py-2 text-sm text-theme-text-primary dark:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" />
+                        <button type="button" id="chatEmojiButton" class="flex h-10 w-10 items-center justify-center rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-theme-surface dark:hover:bg-darkTheme-surface focus:outline-none focus:ring-2 focus:ring-theme-accent" aria-label="Open emoji picker" title="Add emoji">
+                            <span class="text-lg">😊</span>
+                        </button>
+                        <button type="button" id="chatGifButton" class="flex h-10 w-10 items-center justify-center rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background text-theme-text-primary dark:text-darkTheme-text-primary hover:bg-theme-surface dark:hover:bg-darkTheme-surface focus:outline-none focus:ring-2 focus:ring-theme-accent" aria-label="Open GIF picker" title="Search GIFs">
+                            <i class="bi bi-image"></i>
+                        </button>
+                        <input id="chatInput" type="text" placeholder="Type a message, paste a .gif link, or use emojis" class="flex-1 rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background px-3 py-2 text-sm text-theme-text-primary dark:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" />
                         <button type="submit" class="flex h-10 w-10 items-center justify-center rounded-full bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-theme-accent" aria-label="Send chat message">
                             <i class="bi bi-send-fill"></i>
                         </button>
                     </form>
+                    <div id="emojiPicker" class="hidden bg-theme-surface dark:bg-darkTheme-surface border-t border-theme-border dark:border-darkTheme-border p-3 grid grid-cols-7 gap-2"></div>
+                    <div id="chatGifPicker" class="hidden bg-theme-surface dark:bg-darkTheme-surface border-t border-theme-border dark:border-darkTheme-border p-3 flex flex-col gap-3">
+                        <div class="flex items-center gap-2">
+                            <input id="gifSearchInput" type="search" placeholder="Search GIFs" class="flex-1 rounded-full border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background px-3 py-2 text-sm text-theme-text-primary dark:text-darkTheme-text-primary focus:outline-none focus:ring-2 focus:ring-theme-accent" />
+                            <button id="gifSearchBtn" type="button" class="flex h-10 w-10 items-center justify-center rounded-full bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-theme-accent" aria-label="Search GIFs" title="Search GIFs">
+                                <i class="bi bi-search"></i>
+                            </button>
+                        </div>
+                        <div id="gifSearchStatus" class="text-xs text-theme-text-muted dark:text-darkTheme-text-muted">Search GIFs by keyword, or click the button to show trending GIFs.</div>
+                        <div id="gifResults" class="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto"></div>
+                    </div>
                 </div>
                 <button id="chatToggleBtn" class="flex h-16 w-16 items-center justify-center rounded-full bg-theme-accent text-theme-accent-contrast dark:bg-darkTheme-accent dark:text-darkTheme-accent-contrast shadow-2xl shadow-black/15 hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-theme-accent/30" aria-label="Open chat" aria-expanded="false">
                     <i class="bi bi-chat-dots text-2xl"></i>

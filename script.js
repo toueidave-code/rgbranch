@@ -53,7 +53,15 @@ if (window.pdfjsLib) {
     const chatSettingsBtn = document.getElementById('chatSettingsBtn');
     const chatActiveThreadLabel = document.getElementById('chatActiveThreadLabel');
     const chatForm = document.getElementById('chatForm');
+    const chatEmojiButton = document.getElementById('chatEmojiButton');
+    const chatGifButton = document.getElementById('chatGifButton');
     const chatInput = document.getElementById('chatInput');
+    const emojiPicker = document.getElementById('emojiPicker');
+    const gifPicker = document.getElementById('chatGifPicker');
+    const gifSearchInput = document.getElementById('gifSearchInput');
+    const gifSearchBtn = document.getElementById('gifSearchBtn');
+    const gifResults = document.getElementById('gifResults');
+    const gifSearchStatus = document.getElementById('gifSearchStatus');
     const chatMessages = document.getElementById('chatMessages');
     const duplicateWindowBtn = document.getElementById('duplicateWindowBtn');
 
@@ -159,6 +167,160 @@ if (window.pdfjsLib) {
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    const chatEmojiList = ['😀', '😁', '😂', '🤣', '😊', '😍', '😎', '😢', '😡', '🥳', '👍', '🙏', '🎉', '💬', '🔥', '🌟', '💡', '🎈', '🥰', '🤔', '🙌', '✨', '👏', '😅', '😇'];
+
+    function isGifUrl(url) {
+        return typeof url === 'string' && /https?:\/\/\S+\.gif(?:\?\S*)?$/i.test(url.trim());
+    }
+
+    function renderMessageContent(text) {
+        if (!text) return '';
+        const gifRegex = /https?:\/\/\S+\.gif(?:\?\S*)?/gi;
+        let html = '';
+        let lastIndex = 0;
+        let match;
+
+        while ((match = gifRegex.exec(text)) !== null) {
+            html += escapeHtml(text.slice(lastIndex, match.index));
+            const src = match[0];
+            html += `<div class="chat-message-gif-wrapper"><img src="${escapeHtml(src)}" alt="GIF" class="chat-message-gif" loading="lazy" /></div>`;
+            lastIndex = match.index + src.length;
+        }
+
+        html += escapeHtml(text.slice(lastIndex));
+        return html.replace(/\n/g, '<br>');
+    }
+
+    function insertEmojiAtCursor(emoji) {
+        if (!chatInput) return;
+        const start = chatInput.selectionStart || 0;
+        const end = chatInput.selectionEnd || 0;
+        const value = chatInput.value || '';
+        chatInput.value = value.slice(0, start) + emoji + value.slice(end);
+        chatInput.selectionStart = chatInput.selectionEnd = start + emoji.length;
+        chatInput.focus();
+    }
+
+    function initializeEmojiPicker() {
+        if (!emojiPicker) return;
+        emojiPicker.innerHTML = '';
+        chatEmojiList.forEach((emoji) => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'rounded-xl bg-theme-background dark:bg-darkTheme-background text-lg p-2 transition duration-150 hover:bg-theme-surface dark:hover:bg-darkTheme-surface focus:outline-none focus:ring-2 focus:ring-theme-accent';
+            button.textContent = emoji;
+            button.addEventListener('click', () => {
+                insertEmojiAtCursor(emoji);
+            });
+            emojiPicker.appendChild(button);
+        });
+    }
+
+    function toggleEmojiPicker() {
+        if (!emojiPicker) return;
+        if (!emojiPicker.classList.contains('hidden')) {
+            hideEmojiPicker();
+            return;
+        }
+        hideGifPicker();
+        emojiPicker.classList.remove('hidden');
+        emojiPicker.style.display = '';
+    }
+
+    function hideEmojiPicker() {
+        if (emojiPicker && !emojiPicker.classList.contains('hidden')) {
+            emojiPicker.classList.add('hidden');
+            emojiPicker.style.display = '';
+        }
+    }
+
+    async function fetchGifResults(query) {
+        if (!gifResults || !gifSearchStatus) return;
+        const apiKey = 'LIVDSRZULELA';
+        const limit = 18;
+        const endpoint = query.trim().length > 0
+            ? `https://g.tenor.com/v1/search?q=${encodeURIComponent(query)}&key=${apiKey}&limit=${limit}`
+            : `https://g.tenor.com/v1/trending?key=${apiKey}&limit=${limit}`;
+
+        gifSearchStatus.textContent = query ? 'Searching GIFs...' : 'Loading trending GIFs...';
+        gifResults.innerHTML = '';
+
+        try {
+            const response = await fetch(endpoint);
+            const data = await response.json();
+            const results = data.results || [];
+
+            if (results.length === 0) {
+                gifSearchStatus.textContent = 'No GIFs found. Try another search term.';
+                return;
+            }
+
+            gifSearchStatus.textContent = `Showing ${results.length} GIFs. Click to send.`;
+            results.forEach(result => {
+                const media = result.media && result.media[0];
+                const gifUrl = media?.gif?.url || media?.mediumgif?.url || media?.tinygif?.url;
+                if (!gifUrl) return;
+                const gifButton = document.createElement('button');
+                gifButton.type = 'button';
+                gifButton.className = 'overflow-hidden rounded-2xl border border-theme-border dark:border-darkTheme-border bg-theme-background dark:bg-darkTheme-background focus:outline-none focus:ring-2 focus:ring-theme-accent';
+                gifButton.innerHTML = `<img src="${escapeHtml(gifUrl)}" alt="GIF result" class="w-full h-24 object-cover" loading="lazy" />`;
+                gifButton.addEventListener('click', () => {
+                    addMessageToRoom(gifUrl, currentUser.id, currentUser.label);
+                    hideGifPicker();
+                    openChatWindow();
+                });
+                gifResults.appendChild(gifButton);
+            });
+        } catch (error) {
+            console.warn('GIF search failed:', error);
+            gifSearchStatus.textContent = 'Unable to load GIFs. Please try again later.';
+        }
+    }
+
+    function toggleGifPicker() {
+        if (!gifPicker) return;
+        if (!gifPicker.classList.contains('hidden')) {
+            hideGifPicker();
+            return;
+        }
+        hideEmojiPicker();
+        gifPicker.classList.remove('hidden');
+        gifPicker.style.display = '';
+        if (gifSearchInput) {
+            gifSearchInput.focus();
+        }
+        fetchGifResults(gifSearchInput?.value || '');
+    }
+
+    function hideGifPicker() {
+        if (gifPicker && !gifPicker.classList.contains('hidden')) {
+            gifPicker.classList.add('hidden');
+            gifPicker.style.display = '';
+        }
+    }
+
+    function renderChatMessages() {
+        if (!chatMessages) return;
+        chatMessages.innerHTML = '';
+
+        if (chatRoomMessages.length === 0) {
+            const placeholder = document.createElement('div');
+            placeholder.className = 'chat-message bot';
+            placeholder.innerHTML = `<p>The room is empty. Start the conversation with your first message.</p><div class="meta">Room · ${formatChatTimestamp(new Date())}</div>`;
+            chatMessages.appendChild(placeholder);
+            return;
+        }
+
+        chatRoomMessages.forEach(message => {
+            const messageDiv = document.createElement('div');
+            const isMe = message.senderId === currentUser.id;
+            messageDiv.className = `chat-message ${isMe ? 'user' : 'bot'}`;
+            messageDiv.innerHTML = `<div class="chat-message-content">${renderMessageContent(message.text)}</div><div class="meta">${escapeHtml(message.senderLabel)} · ${formatChatTimestamp(message.timestamp)}</div>`;
+            chatMessages.appendChild(messageDiv);
+        });
+        chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
     function setButtonFeedback(button, message, isSuccess, duration = 2000, originalContentHTML) {
@@ -2055,28 +2217,6 @@ async function handlePdfData(data, fileName) {
         }
     }
 
-    function renderChatMessages() {
-        if (!chatMessages) return;
-        chatMessages.innerHTML = '';
-
-        if (chatRoomMessages.length === 0) {
-            const placeholder = document.createElement('div');
-            placeholder.className = 'chat-message bot';
-            placeholder.innerHTML = `<p>The room is empty. Start the conversation with your first message.</p><div class="meta">Room · ${formatChatTimestamp(new Date())}</div>`;
-            chatMessages.appendChild(placeholder);
-            return;
-        }
-
-        chatRoomMessages.forEach(message => {
-            const messageDiv = document.createElement('div');
-            const isMe = message.senderId === currentUser.id;
-            messageDiv.className = `chat-message ${isMe ? 'user' : 'bot'}`;
-            messageDiv.innerHTML = `<p>${escapeHtml(message.text)}</p><div class="meta">${escapeHtml(message.senderLabel)} · ${formatChatTimestamp(message.timestamp)}</div>`;
-            chatMessages.appendChild(messageDiv);
-        });
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    }
-
     function addMessageToRoom(text, senderId, senderLabel) {
         const message = {
             senderId,
@@ -2104,6 +2244,8 @@ async function handlePdfData(data, fileName) {
         chatWindow.classList.remove('hidden');
         chatToggleBtn.setAttribute('aria-expanded', 'true');
         setTimeout(() => chatInput?.focus(), 150);
+        hideEmojiPicker();
+        hideGifPicker();
         // Clear unread badge when opening chat
         updateUnreadBadge(0);
     }
@@ -2130,6 +2272,7 @@ async function handlePdfData(data, fileName) {
 
         addMessageToRoom(messageText, currentUser.id, currentUser.label);
         if (chatInput) chatInput.value = '';
+        hideEmojiPicker();
         openChatWindow();
     }
 
@@ -3049,6 +3192,53 @@ async function handlePdfData(data, fileName) {
             chatForm.addEventListener('submit', handleChatSubmit);
         }
 
+        if (chatEmojiButton) {
+            chatEmojiButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleEmojiPicker();
+            });
+        }
+
+        if (chatGifButton) {
+            chatGifButton.addEventListener('click', (event) => {
+                event.stopPropagation();
+                toggleGifPicker();
+            });
+        }
+
+        if (gifSearchBtn) {
+            gifSearchBtn.addEventListener('click', () => {
+                if (gifSearchInput) {
+                    fetchGifResults(gifSearchInput.value);
+                }
+            });
+        }
+
+        if (gifSearchInput) {
+            gifSearchInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    fetchGifResults(gifSearchInput.value);
+                }
+            });
+        }
+
+        document.addEventListener('click', (event) => {
+            const target = event.target;
+            try {
+                if (emojiPicker && chatEmojiButton && !emojiPicker.contains(target) && !chatEmojiButton.contains(target)) {
+                    hideEmojiPicker();
+                }
+                if (gifPicker && chatGifButton && !gifPicker.contains(target) && !chatGifButton.contains(target)) {
+                    hideGifPicker();
+                }
+            } catch (e) {
+                // Fallback: if anything goes wrong, ensure pickers are hidden
+                try { hideEmojiPicker(); } catch (_) {}
+                try { hideGifPicker(); } catch (_) {}
+            }
+        });
+
         document.addEventListener('keydown', handleChatEscape);
 
         if (chatSettingsBtn) {
@@ -3123,6 +3313,7 @@ async function handlePdfData(data, fileName) {
                     // Initialize saved results UI from localStorage
                     initializeSavedResultsUI();
                     loadRoomMessages();
+                    initializeEmojiPicker();
                     setupFirebaseChat();
                     updateChatUserLabel();
                     renderChatMessages();
