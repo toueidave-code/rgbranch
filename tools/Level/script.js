@@ -35,99 +35,163 @@ function showMessageBox(message, type = 'error') {
  * Clears the canvas and resets drawing properties.
  */
 function clearCanvas() {
+    // Reset any transforms (important when canvas is DPI-scaled)
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = '14px Sora, sans-serif'; // Increased font size
     ctx.lineJoin = 'round';
     ctx.lineCap = 'round';
+    // Font will be set per-draw in CSS pixels
 }
+
+/**
+ * Resize canvas to match CSS size and devicePixelRatio for crisp drawing.
+ * ponytail: DPR scaling, good enough for diagrams; upgrade if needing zoom.
+ */
+function resizeCanvas() {
+    const dpr = window.devicePixelRatio || 1;
+    // Use clientWidth/clientHeight for CSS pixel sizes
+    const cssWidth = Math.max(300, canvas.clientWidth || 600);
+    const cssHeight = Math.max(180, canvas.clientHeight || 300);
+    canvas.width = Math.round(cssWidth * dpr);
+    canvas.height = Math.round(cssHeight * dpr);
+    // Scale the coordinate system so drawing uses CSS pixels
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+
+// redraw on resize to keep diagram consistent
+window.addEventListener('resize', () => {
+    resizeCanvas();
+    // If a result is currently shown, recalc and redraw
+    if (resultCard && resultCard.style.display !== 'none' && !isNaN(parseFloat(pointAInput.value))) {
+        const pointA = parseFloat(pointAInput.value);
+        const pointC = parseFloat(pointCInput.value);
+        const totalLength = parseFloat(totalLengthInput.value);
+        const lengthBC = parseFloat(lengthBCInput.value);
+        const lengthAB = totalLength - lengthBC;
+        const totalChange = pointC - pointA;
+        const proportion = lengthAB / totalLength;
+        const changeAB = totalChange * proportion;
+        const pointB = pointA + changeAB;
+        drawDiagram(pointA, pointB, pointC, totalLength, lengthBC);
+    }
+});
 
 /**
  * Draws the full diagram based on the calculated values.
  */
 function drawDiagram(pointA, pointB, pointC, totalLength, lengthBC) {
     clearCanvas();
-    
-    // Define colors from the theme
-    const accentColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-accent');
-    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--theme-text-primary');
+    resizeCanvas();
 
-    // Set up padding and scaling
-    const padding = 30; // Increased padding
+    // Use CSS pixel dimensions for layout
+    const width = canvas.clientWidth || 600;
+    const height = canvas.clientHeight || 300;
+
+    // Define colors from the theme with sensible fallbacks
+    const style = getComputedStyle(document.documentElement);
+    const accentColor = style.getPropertyValue('--theme-accent') || '#0ea5a3';
+    const textColor = style.getPropertyValue('--theme-text-primary') || '#111827';
+    const danger = 'rgb(220, 53, 69)';
+    const info = 'rgb(0, 122, 255)';
+
+    // Layout
+    const padding = 30;
     const xA = padding;
-    const xC = canvas.width - padding;
-    const xB = xA + (totalLength - lengthBC) * (xC - xA) / totalLength;
+    const xC = width - padding;
+    const lengthAB = Math.max(0, totalLength - lengthBC);
+    const xB = xA + (lengthAB / (totalLength || 1)) * (xC - xA);
 
     const allPoints = [pointA, pointB, pointC].filter(p => !isNaN(p));
-    if (allPoints.length === 0) return; // Don't draw if no valid points
+    if (allPoints.length === 0) return;
 
     const maxLevel = Math.max(...allPoints);
     const minLevel = Math.min(...allPoints);
-    const totalVerticalChange = maxLevel - minLevel;
-    const scaleY = (canvas.height - padding * 2) / (totalVerticalChange === 0 ? 1 : totalVerticalChange);
+    const totalVerticalChange = maxLevel - minLevel || 1;
+    const scaleY = (height - padding * 2) / totalVerticalChange;
 
-    // Calculate y-coordinates (inverted for canvas, lower levels have higher y values)
-    const yA = canvas.height - padding - (pointA - minLevel) * scaleY;
-    const yC = canvas.height - padding - (pointC - minLevel) * scaleY;
-    const yB = canvas.height - padding - (pointB - minLevel) * scaleY;
+    // y-coordinates in CSS pixels
+    const yA = height - padding - (pointA - minLevel) * scaleY;
+    const yC = height - padding - (pointC - minLevel) * scaleY;
+    const yB = height - padding - (pointB - minLevel) * scaleY;
 
-    // --- Drawing lines ---
+    // helpers
+    function drawArrow(x1, y1, x2, y2, color) {
+        const headSize = 6;
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+        // arrowhead
+        const angle = Math.atan2(y2 - y1, x2 - x1);
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(x2 - headSize * Math.cos(angle - Math.PI / 6), y2 - headSize * Math.sin(angle - Math.PI / 6));
+        ctx.lineTo(x2 - headSize * Math.cos(angle + Math.PI / 6), y2 - headSize * Math.sin(angle + Math.PI / 6));
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    // draw sloped A-C
     ctx.lineWidth = 2;
-    
-    // Draw the sloped line A-C
-    ctx.strokeStyle = textColor;
+    ctx.strokeStyle = accentColor || textColor;
     ctx.beginPath();
     ctx.moveTo(xA, yA);
     ctx.lineTo(xC, yC);
     ctx.stroke();
 
-    // Draw the vertical lines at A, B, and C
-    ctx.setLineDash([5, 5]); // Dashed lines for vertical height
+    // vertical dashed guides
+    ctx.setLineDash([4, 6]);
     ctx.strokeStyle = textColor;
     ctx.beginPath();
     ctx.moveTo(xA, yA);
-    ctx.lineTo(xA, canvas.height - padding);
+    ctx.lineTo(xA, height - padding + 6);
     ctx.moveTo(xB, yB);
-    ctx.lineTo(xB, canvas.height - padding);
+    ctx.lineTo(xB, height - padding + 6);
     ctx.moveTo(xC, yC);
-    ctx.lineTo(xC, canvas.height - padding);
+    ctx.lineTo(xC, height - padding + 6);
     ctx.stroke();
-    ctx.setLineDash([]); // Reset line dash
+    ctx.setLineDash([]);
 
-    // --- Drawing labels ---
+    // points
+    ctx.fillStyle = accentColor || textColor;
+    const pointRadius = 4;
+    ctx.beginPath(); ctx.arc(xA, yA, pointRadius, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(xB, yB, pointRadius, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(xC, yC, pointRadius, 0, Math.PI * 2); ctx.fill();
+
+    // labels
     ctx.fillStyle = textColor;
     ctx.textAlign = 'center';
+    ctx.font = '14px Sora, sans-serif';
+    ctx.fillText('A', xA, yA - 10);
+    ctx.fillText(`${pointA.toFixed(0)} mm`, xA, yA + 20);
+    ctx.fillText('B', xB, yB - 10);
+    ctx.fillText(`${pointB.toFixed(3)} mm`, xB, yB + 20);
+    ctx.fillText('C', xC, yC - 10);
+    ctx.fillText(`${pointC.toFixed(0)} mm`, xC, yC + 20);
 
-    // Labels for points and levels (A, B, C)
-    ctx.font = '16px Sora, sans-serif';
-    ctx.fillText(`A`, xA, yA - 10);
-    ctx.fillText(`${pointA.toFixed(0)}mm`, xA, yA + 20);
-    
-    ctx.fillText(`B`, xB, yB - 10);
-    ctx.fillText(`${pointB.toFixed(3)}mm`, xB, yB + 20);
-    
-    ctx.fillText(`C`, xC, yC - 10);
-    ctx.fillText(`${pointC.toFixed(0)}mm`, xC, yC + 20);
-
-    // Dimension lines and labels for length
+    // baseline and ticks
+    ctx.strokeStyle = '#9CA3AF';
     ctx.lineWidth = 1;
     ctx.beginPath();
-    
-    // TOTAL LENGTH (red)
-    ctx.strokeStyle = 'rgb(220, 53, 69)';
-    ctx.moveTo(xA, padding);
-    ctx.lineTo(xC, padding);
+    ctx.moveTo(padding - 6, height - padding);
+    ctx.lineTo(width - padding + 6, height - padding);
     ctx.stroke();
-    ctx.fillStyle = 'rgb(220, 53, 69)';
-    ctx.font = '14px Sora, sans-serif';
-    ctx.fillText(`TOTAL LENGTH: ${totalLength.toFixed(0)}mm`, (xA + xC) / 2, padding - 10);
-    
-    // B-C (blue)
-    ctx.strokeStyle = 'rgb(0, 122, 255)';
-    ctx.moveTo(xB, padding + 20);
-    ctx.lineTo(xC, padding + 20);
-    ctx.stroke();
-    ctx.fillStyle = 'rgb(0, 122, 255)';
-    ctx.fillText(`B - C: ${lengthBC.toFixed(0)}mm`, (xB + xC) / 2, padding + 10);
+
+    // dimension arrows
+    // total length
+    drawArrow(xA, padding, xC, padding, danger);
+    ctx.fillStyle = danger;
+    ctx.font = '13px Sora, sans-serif';
+    ctx.fillText(`TOTAL: ${totalLength.toFixed(0)} mm`, (xA + xC) / 2, padding - 8);
+
+    // B-C
+    drawArrow(xB, padding + 22, xC, padding + 22, info);
+    ctx.fillStyle = info;
+    ctx.fillText(`B-C: ${lengthBC.toFixed(0)} mm`, (xB + xC) / 2, padding + 38);
 }
 
 // Function to perform the calculation
@@ -238,6 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     (window.PonytailTheme || {}).applyTheme && (window.PonytailTheme.applyTheme(preferredTheme));
+
+    // Ensure canvas is sized correctly before any drawing
+    try { resizeCanvas(); } catch (e) { /* ignore if resizeCanvas not yet defined */ }
 
     // Calculator button and input listeners
     calculateButton.addEventListener('click', calculateMissingLevel);
