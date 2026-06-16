@@ -102,7 +102,13 @@ let extractedDataForSaving = [];
 let currentSortColumn = null;
 let currentSortOrder = 'asc'; // 'asc' or 'desc'
 let currentThunderbirdFilter = 'all'; // 'all', 'sent', 'not sent'
-const AUTO_REFRESH_INTERVAL_MS = 15000;
+// ponytail: reduce DOM nodes with simple pagination/windowing
+const PAGE_SIZE = 50;
+let renderCursor = 0;
+let sentAllRows = [];
+let filteredRows = [];
+// ponytail: reduce auto-refresh frequency to avoid excess network + rendering
+const AUTO_REFRESH_INTERVAL_MS = 60000; // 60s
 let autoRefreshIntervalId = null;
 
 function startAutoRefresh() {
@@ -116,53 +122,36 @@ function startAutoRefresh() {
 
 // Sorting and filtering functions
 function sortTable(column) {
-    const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
-
-    // Update sort order
+    // Sort the filteredRows array instead of DOM nodes to avoid heavy DOM ops
     if (currentSortColumn === column) {
         currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
     } else {
         currentSortColumn = column;
         currentSortOrder = 'asc';
     }
-
-    // Update sort icons
     updateSortIcons(column);
 
-    // Sort the rows
-    allRows.sort((a, b) => {
-        let aValue, bValue;
+    if (column === 'colD' || column === 'thunderbirdDate') {
+        filteredRows.sort((a, b) => {
+            const aValue = column === 'colD' ? (a.colD || '') : (a.thunderbirdDate || '');
+            const bValue = column === 'colD' ? (b.colD || '') : (b.thunderbirdDate || '');
+            const dateA = parseDate(aValue);
+            const dateB = parseDate(bValue);
 
-        if (column === 'colD') {
-            // Sent Date column (4th column, index 3)
-            aValue = a.cells[3].textContent.trim();
-            bValue = b.cells[3].textContent.trim();
-        } else if (column === 'thunderbirdDate') {
-            // Thunderbird Date column (6th column, index 5)
-            aValue = a.cells[5].textContent.trim();
-            bValue = b.cells[5].textContent.trim();
-        } else {
-            return 0;
-        }
+            if (dateA === null && dateB === null) return 0;
+            if (dateA === null) return currentSortOrder === 'asc' ? 1 : -1;
+            if (dateB === null) return currentSortOrder === 'asc' ? -1 : 1;
+            return currentSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+        });
+    }
 
-        // Parse dates for comparison
-        const dateA = parseDate(aValue);
-        const dateB = parseDate(bValue);
-
-        if (dateA === null && dateB === null) return 0;
-        if (dateA === null) return currentSortOrder === 'asc' ? 1 : -1;
-        if (dateB === null) return currentSortOrder === 'asc' ? -1 : 1;
-
-        return currentSortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-    });
-
-    // Re-append sorted rows
-    allRows.forEach(row => dataTableBody.appendChild(row));
+    // reset render and show first page
+    renderCursor = 0;
+    dataTableBody.innerHTML = '';
+    renderNextPage();
 }
 
 function filterThunderbirdSent() {
-    const allRows = Array.from(dataTableBody.querySelectorAll('tr'));
-
     // Cycle through filter states: all -> sent -> not sent -> all
     if (currentThunderbirdFilter === 'all') {
         currentThunderbirdFilter = 'sent';
@@ -175,18 +164,31 @@ function filterThunderbirdSent() {
     // Update filter icon
     updateFilterIcon();
 
-    // Apply filter
-    allRows.forEach(row => {
-        const thunderbirdSent = row.cells[4].textContent.trim(); // 5th column (index 4)
+    // Rebuild filteredRows from sentAllRows using current search and thunderbird filter
+    applyFiltersAndRender();
+}
 
-        if (currentThunderbirdFilter === 'all') {
-            row.style.display = '';
-        } else if (currentThunderbirdFilter === 'sent') {
-            row.style.display = thunderbirdSent.includes('✅') ? '' : 'none';
-        } else if (currentThunderbirdFilter === 'not sent') {
-            row.style.display = thunderbirdSent.includes('✅') ? 'none' : '';
-        }
+function applyFiltersAndRender() {
+    const query = (searchBar && searchBar.value) ? searchBar.value.toLowerCase() : '';
+    filteredRows = sentAllRows.filter(row => {
+        const projectNumber = (row.colA || '').toLowerCase();
+        const projectName = (row.colB || '').toLowerCase();
+        let matchesSearch = !query || projectNumber.includes(query) || projectName.includes(query);
+
+        if (!matchesSearch) return false;
+
+        if (currentThunderbirdFilter === 'sent') return (row.thunderbirdSent || '').includes('✅');
+        if (currentThunderbirdFilter === 'not sent') return !(row.thunderbirdSent || '').includes('✅');
+        return true;
     });
+
+    // apply sort if any
+    if (currentSortColumn) sortTable(currentSortColumn);
+
+    // reset render and show first page
+    renderCursor = 0;
+    dataTableBody.innerHTML = '';
+    renderNextPage();
 }
 
 function parseDate(dateString) {
@@ -220,6 +222,74 @@ function parseDate(dateString) {
     // If no standard format, try creating date directly
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? null : date;
+}
+
+// Rendering helpers for pagination
+function renderNextPage() {
+    if (!filteredRows || filteredRows.length === 0) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="8" class="py-1 px-2 text-center text-theme-text-muted dark:text-darkTheme-text-muted text-xs">No data found</td>`;
+        dataTableBody.appendChild(tr);
+        if (loadMoreBtn) loadMoreBtn.style.display = 'none';
+        return;
+    }
+
+    const start = renderCursor;
+    const end = Math.min(renderCursor + PAGE_SIZE, filteredRows.length);
+    const frag = document.createDocumentFragment();
+    for (let i = start; i < end; i++) {
+        const row = filteredRows[i];
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface";
+        tr.dataset.projectNumber = row.colA || '';
+        tr.dataset.projectName = row.colB || '';
+        tr.dataset.key = row.key;
+        tr.innerHTML = `
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colA || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colB || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colC || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colD || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdSent || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdDate || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.notes || ""}</td>
+          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">
+            <div class="flex gap-1">
+              <button class="px-2 py-1 bg-theme-info text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="viewRow('${row.key}')" title="View">
+                <i class="bi bi-eye text-sm"></i>
+              </button>
+              <button class="px-2 py-1 bg-theme-accent text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="editRow('${row.key}')" title="Edit">
+                <i class="bi bi-pencil text-sm"></i>
+              </button>
+              <button class="px-2 py-1 bg-theme-error text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="deleteRow('${row.key}')" title="Delete">
+                <i class="bi bi-trash text-sm"></i>
+              </button>
+            </div>
+          </td>
+        `;
+        frag.appendChild(tr);
+    }
+    dataTableBody.appendChild(frag);
+    renderCursor = end;
+
+    if (!loadMoreBtn) createLoadMoreButton();
+    loadMoreBtn.style.display = (renderCursor < filteredRows.length) ? '' : 'none';
+}
+
+function resetRender() {
+    renderCursor = 0;
+    dataTableBody.innerHTML = '';
+    renderNextPage();
+}
+
+let loadMoreBtn = null;
+function createLoadMoreButton() {
+    if (loadMoreBtn) return;
+    loadMoreBtn = document.createElement('button');
+    loadMoreBtn.textContent = 'Load more';
+    loadMoreBtn.className = 'mx-auto my-2 px-4 py-2 bg-theme-surface dark:bg-darkTheme-surface text-theme-text-primary rounded';
+    loadMoreBtn.addEventListener('click', () => renderNextPage());
+    const tableContainer = document.querySelector('#dataTable').parentNode;
+    tableContainer.appendChild(loadMoreBtn);
 }
 
 function updateSortIcons(activeColumn) {
@@ -256,8 +326,20 @@ function getDateOnly(dateString) {
 // Function to populate the main table (updated logic)
 async function loadData() {
   try {
-    const res = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
-    const data = await res.json();
+    // Try optimized query (last 200 by colD). If it returns nothing, fall back to full fetch.
+    let data = null;
+    try {
+      const res = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}&orderBy=%22colD%22&limitToLast=200`);
+      if (res.ok) data = await res.json();
+    } catch (e) { console.warn('Optimized fetch failed, will fallback', e); }
+
+    // Fallback to full fetch if optimized returned no usable rows
+    if (!data || Object.keys(data).length === 0) {
+      try {
+        const res2 = await fetch(`${FIREBASE_URL}/${COLLECTION}.json?auth=${API_KEY}`);
+        if (res2.ok) data = await res2.json();
+      } catch (e) { console.error('Fallback fetch failed', e); throw e; }
+    }
 
     dataTableBody.innerHTML = "";
     let allRows = [];
@@ -274,39 +356,15 @@ async function loadData() {
         return dateB - dateA;
       });
 
-      allRows.forEach(row => {
-        const tr = document.createElement("tr");
-        tr.className = "hover:bg-theme-surface dark:hover:bg-darkTheme-surface"; // Added hover effect
-        tr.dataset.projectNumber = row.colA || '';
-        tr.dataset.projectName = row.colB || '';
-        tr.dataset.key = row.key;
-        tr.innerHTML = `
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colA || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colB || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colC || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.colD || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdSent || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.thunderbirdDate || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">${row.notes || ""}</td>
-          <td class="py-1 px-2 border-b border-theme-border dark:border-darkTheme-border text-xs">
-            <div class="flex gap-1">
-              <button class="px-2 py-1 bg-theme-info text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="viewRow('${row.key}')" title="View">
-                <i class="bi bi-eye text-sm"></i>
-              </button>
-              <button class="px-2 py-1 bg-theme-accent text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="editRow('${row.key}')" title="Edit">
-                <i class="bi bi-pencil text-sm"></i>
-              </button>
-              <button class="px-2 py-1 bg-theme-error text-white text-xs rounded hover:bg-opacity-80 transition-all" onclick="deleteRow('${row.key}')" title="Delete">
-                <i class="bi bi-trash text-sm"></i>
-              </button>
-            </div>
-          </td>
-        `;
-        dataTableBody.appendChild(tr);
-      });
+      // Store rows and use pagination/windowed rendering to limit DOM nodes
+      sentAllRows = allRows;
+      filteredRows = sentAllRows.slice();
+      renderCursor = 0;
+      dataTableBody.innerHTML = '';
+      renderNextPage();
     } else {
       const tr = document.createElement("tr");
-      tr.innerHTML = `<td colspan="7" class="py-1 px-2 text-center text-theme-text-muted dark:text-darkTheme-text-muted text-xs">No data found</td>`;
+      tr.innerHTML = `<td colspan="8" class="py-1 px-2 text-center text-theme-text-muted dark:text-darkTheme-text-muted text-xs">No data found</td>`;
       dataTableBody.appendChild(tr);
     }
   } catch (err) {
@@ -602,8 +660,10 @@ function addFileToPreview(file, source) {
     container.dataset.fileSize = file.size;
 
     const img = document.createElement('img');
-    img.src = URL.createObjectURL(file);
+    const objUrl = URL.createObjectURL(file);
+    img.src = objUrl;
     img.alt = file.name;
+    img.loading = 'lazy'; // ponytail: lazy load previews to reduce memory/paint
 
     const removeButton = document.createElement('button');
     removeButton.className = 'remove-button';
@@ -620,6 +680,8 @@ function addFileToPreview(file, source) {
                 .forEach(f => dt.items.add(f));
             imageInput.files = dt.files;
         }
+        // Revoke object URL to free memory
+        try { URL.revokeObjectURL(objUrl); } catch (e) {}
         container.remove();
         updateFileLabel();
     });
@@ -668,28 +730,8 @@ document.addEventListener('paste', (event) => {
 
 // Function to filter the table
 function filterTable() {
-    const filter = searchBar.value.toLowerCase();
-    const rows = dataTableBody.querySelectorAll('tr');
-
-    rows.forEach(row => {
-        const projectNumber = (row.dataset.projectNumber || '').toLowerCase();
-        const projectName = (row.dataset.projectName || '').toLowerCase();
-        let matchesSearch = projectNumber.includes(filter) || projectName.includes(filter);
-
-        // Also check Thunderbird Sent filter
-        let matchesThunderbirdFilter = true;
-        if (currentThunderbirdFilter === 'sent') {
-            matchesThunderbirdFilter = row.cells[4].textContent.includes('✅');
-        } else if (currentThunderbirdFilter === 'not sent') {
-            matchesThunderbirdFilter = !row.cells[4].textContent.includes('✅');
-        }
-
-        if (matchesSearch && matchesThunderbirdFilter) {
-            row.style.display = '';
-        } else {
-            row.style.display = 'none';
-        }
-    });
+    // Use filteredRows rebuild to reduce DOM interaction
+    applyFiltersAndRender();
 }
 
 // ============ CRUD FUNCTIONS ============
@@ -873,7 +915,9 @@ imageInput.addEventListener('change', (e) => {
     handleFiles(e.target.files, 'input');
 });
 
-searchBar.addEventListener('input', filterTable);
+// Debounced search to avoid filtering on every keystroke
+function debounce(fn, wait){ let t; return function(...a){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,a), wait); }; }
+searchBar.addEventListener('input', debounce(filterTable, 200));
 
 // Function to update the file label text based on selected/pasted files
 function updateFileLabel() {
