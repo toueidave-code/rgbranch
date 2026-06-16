@@ -114,9 +114,92 @@ if (window.pdfjsLib) {
     let firebaseConnected = false;
     const roomPath = '/rooms/main/messages';
 
+    // Debug/log helper for Firebase errors — stored in localStorage for inspection
+    function logFirebaseError(label, err) {
+        try {
+            const entry = { label: String(label), message: (err && err.message) ? err.message : String(err), stack: (err && err.stack) || null, ts: new Date().toISOString() };
+            const key = 'rgbranch_firebase_errors_v1';
+            const raw = localStorage.getItem(key);
+            const arr = raw ? JSON.parse(raw) : [];
+            arr.push(entry);
+            // keep small
+            while (arr.length > 50) arr.shift();
+            localStorage.setItem(key, JSON.stringify(arr));
+            console.warn('Logged Firebase error:', entry);
+        } catch (e) {
+            console.warn('Failed to log Firebase error', e);
+        }
+    }
+
+    // Global error capture (helps catch network and script errors related to Firebase)
+    window.addEventListener('error', (ev) => {
+        try { logFirebaseError('window.error', ev.error || ev.message || ev); } catch (_) {}
+    });
+    window.addEventListener('unhandledrejection', (ev) => {
+        try { logFirebaseError('unhandledrejection', ev.reason || ev); } catch (_) {}
+    });
+
+    // Small debug widget to copy recent errors to clipboard
+    function ensureFirebaseDebugWidget() {
+        try {
+            if (document.getElementById('firebaseDebugBtn')) return;
+            const btn = document.createElement('button');
+            btn.id = 'firebaseDebugBtn';
+            btn.title = 'Copy last Firebase errors to clipboard';
+            btn.style.position = 'fixed';
+            btn.style.right = '10px';
+            btn.style.bottom = '10px';
+            btn.style.zIndex = 99999;
+            btn.style.padding = '6px 8px';
+            btn.style.borderRadius = '6px';
+            btn.style.fontSize = '12px';
+            btn.style.background = '#111827';
+            btn.style.color = 'white';
+            btn.style.opacity = '0.7';
+            btn.textContent = 'Copy Chat Errors';
+            btn.addEventListener('click', async () => {
+                try {
+                    const raw = localStorage.getItem('rgbranch_firebase_errors_v1') || '[]';
+                    await navigator.clipboard.writeText(raw);
+                    btn.textContent = 'Copied';
+                    setTimeout(() => btn.textContent = 'Copy Chat Errors', 1500);
+                } catch (e) {
+                    logFirebaseError('debugWidget.copyFailed', e);
+                    alert('Failed to copy errors. See console.');
+                }
+            });
+            document.body.appendChild(btn);
+        } catch (e) { /* ignore */ }
+    }
+    ensureFirebaseDebugWidget();
+
     function updateChatUserLabel() {
         if (!chatActiveThreadLabel) return;
         chatActiveThreadLabel.textContent = `Room chat · You: ${currentUser.label}`;
+        updateChatStatusDot();
+    }
+
+    function updateChatStatusDot() {
+        try {
+            const dot = document.querySelector('.chat-status-dot');
+            if (!dot) return;
+            // green if connected, orange if offline but local-storage fallback, gray otherwise
+            dot.style.display = '';
+            if (firebaseConnected === true) {
+                dot.style.background = '#16a34a'; // green
+                dot.title = 'Connected to chat backend';
+            } else {
+                // check if we have local messages
+                const stored = localStorage.getItem(chatRoomKey);
+                if (stored && JSON.parse(stored).length > 0) {
+                    dot.style.background = '#f59e0b'; // amber
+                    dot.title = 'Using local fallback (backend unavailable)';
+                } else {
+                    dot.style.background = '#6b7280'; // gray
+                    dot.title = 'Chat not connected';
+                }
+            }
+        } catch (e) { /* ignore */ }
     }
 
     function setChatUsername(newLabel) {
@@ -1038,6 +1121,10 @@ if (window.pdfjsLib) {
         }, 800);
     }
 
+    // Auto-return timer reference and delay
+    let chatAutoReturnTimer = null;
+    const CHAT_AUTO_RETURN_DELAY = 3000; // ms
+
     function showSaveResultsContainer() {
         if (saveResultsContainer && saveResultsToggleBtn) {
             const hasSavedResults = saveResults && saveResults.length > 0;
@@ -1045,6 +1132,9 @@ if (window.pdfjsLib) {
                 triggerEmptySaveResultsShake();
                 return;
             }
+
+            // Cancel any pending auto-return when panel is opened
+            if (chatAutoReturnTimer) { clearTimeout(chatAutoReturnTimer); chatAutoReturnTimer = null; }
 
             saveResultsContainer.classList.remove('hidden');
             saveResultsContainer.classList.remove('animate-save-results-panel');
@@ -1090,8 +1180,31 @@ if (window.pdfjsLib) {
             }
             saveResultsToggleBtn.title = 'Hide saved results';
             
-            // Reposition chat button to avoid overlap
-            setTimeout(() => checkAndFixChatOverlay(), 100);
+            // Reposition chat button to avoid overlap (dock to right)
+            setTimeout(() => {
+                try {
+                    ensureChatTransition();
+                    if (chatWidget) {
+                        // dock to left default
+                        chatWidget.style.left = CHAT_DEFAULT_POSITION.left + 'px';
+                        chatWidget.style.right = '';
+                        chatWidget.style.bottom = CHAT_DEFAULT_POSITION.bottom + 'px';
+                        saveChatPosition();
+                    }
+                    checkAndFixChatOverlay();
+                } catch (e) { console.warn('Failed to move chat to left after showing save panel', e); }
+            }, 100);
+
+            // Also adjust when panel animation/transition finishes to ensure final placement
+            try {
+                const onAnim = () => { 
+                    // ensure docked left at end of animation
+                    try { if (chatWidget) { chatWidget.style.left = CHAT_DEFAULT_POSITION.left + 'px'; chatWidget.style.right = ''; saveChatPosition(); } } catch (_) {}
+                    checkAndFixChatOverlay(); 
+                    saveResultsContainer.removeEventListener('animationend', onAnim); saveResultsContainer.removeEventListener('transitionend', onAnim); };
+                saveResultsContainer.addEventListener('animationend', onAnim);
+                saveResultsContainer.addEventListener('transitionend', onAnim);
+            } catch (e) { console.warn('Failed to attach saveResultsContainer animation listener', e); }
         }
     }
 
@@ -1106,9 +1219,6 @@ if (window.pdfjsLib) {
 
             // Reset transform and position to default
             saveResultsToggleBtn.style.transform = '';
-            
-            // Reposition chat button after save results is hidden
-            setTimeout(() => checkAndFixChatOverlay(), 100);
             saveResultsToggleBtn.style.right = '';
             saveResultsToggleBtn.style.removeProperty('--movement-percentage');
 
@@ -1121,6 +1231,23 @@ if (window.pdfjsLib) {
                 arrow.textContent = '<';
             }
             saveResultsToggleBtn.title = 'Show saved results';
+
+            // Instead of immediate reposition, schedule an auto-return after a delay so movement feels natural
+            if (chatAutoReturnTimer) { clearTimeout(chatAutoReturnTimer); chatAutoReturnTimer = null; }
+
+            chatAutoReturnTimer = setTimeout(() => {
+                // If the user reopened the panel or is dragging, skip auto-return
+                if (saveResultsContainer && !saveResultsContainer.classList.contains('hidden')) return;
+                if (!chatWidget) return;
+                // animate back to default
+                ensureChatTransition();
+                // return to left default
+                chatWidget.style.left = CHAT_DEFAULT_POSITION.left + 'px';
+                chatWidget.style.right = '';
+                chatWidget.style.bottom = CHAT_DEFAULT_POSITION.bottom + 'px';
+                saveChatPosition();
+                chatAutoReturnTimer = null;
+            }, CHAT_AUTO_RETURN_DELAY);
         }
     }
 
@@ -2097,6 +2224,7 @@ async function handlePdfData(data, fileName) {
                 setTimeout(() => notification.close(), 4000);
             } catch (error) {
                 console.warn('Failed to create notification:', error);
+                try { logFirebaseError('Failed to create notification', error); } catch (e) { console.warn('logFirebaseError failed', e); }
             }
         }
     }
@@ -2161,11 +2289,48 @@ async function handlePdfData(data, fileName) {
         }
     }
 
+    function pushUniqueToLocal(message) {
+        // Avoid duplicates by simple key: senderId + timestamp + text
+        try {
+            const key = `${message.senderId}||${message.timestamp}||${message.text}`;
+            const exists = chatRoomMessages.some(m => `${m.senderId}||${m.timestamp}||${m.text}` === key);
+            if (!exists) {
+                chatRoomMessages.push(message);
+                // keep chronological order
+                chatRoomMessages.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                saveRoomMessages();
+            }
+        } catch (e) { console.warn('pushUniqueToLocal failed', e); }
+    }
+
+    function flushLocalPendingMessages() {
+        if (!firebaseConnected || !window.firebaseDb || !window.firebaseRef || !window.firebasePush) return;
+        const db = window.firebaseDb;
+        const messagesRef = window.firebaseRef(db, roomPath);
+        const pending = chatRoomMessages.filter(m => m._pending === true);
+        if (!pending.length) return;
+        pending.forEach(msg => {
+            const toSend = Object.assign({}, msg);
+            delete toSend._pending;
+            // push and then mark as not pending locally
+            try {
+                window.firebasePush(messagesRef, toSend);
+                msg._pending = false; // allow dedupe if remote echoes
+            } catch (e) {
+                console.warn('Failed to flush pending message', e);
+            }
+        });
+        // save after attempting
+        saveRoomMessages();
+    }
+
     function setupFirebaseChat() {
         if (!window.firebaseDb || !window.firebaseRef || !window.firebasePush || !window.firebaseOnChildAdded || !window.firebaseOnValue) {
             console.warn('Firebase not loaded, falling back to local storage');
             loadRoomMessages();
             renderChatMessages();
+            firebaseConnected = false;
+            updateChatStatusDot();
             return;
         }
 
@@ -2179,34 +2344,80 @@ async function handlePdfData(data, fileName) {
         window.firebaseOnValue(messagesRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
+                // Replace local only when there is remote data
                 chatRoomMessages = Object.values(data).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+                saveRoomMessages(); // Save to localStorage as backup
             } else {
-                chatRoomMessages = [];
+                // If remote is empty, keep local cache if present, otherwise use default
+                if (!chatRoomMessages || chatRoomMessages.length === 0) {
+                    loadRoomMessages();
+                    if (!chatRoomMessages || chatRoomMessages.length === 0) {
+                        chatRoomMessages = [
+                            { senderId: 'system', senderLabel: 'Room Help', text: 'Welcome to the room chat. Messages are shared in real time when the backend is running.', timestamp: new Date().toISOString() }
+                        ];
+                    }
+                }
             }
-            saveRoomMessages(); // Save to localStorage as backup
             renderChatMessages();
             console.info('Firebase room messages updated, total:', chatRoomMessages.length);
+            // mark connected and try flushing local pending
+            firebaseConnected = true;
+            updateChatStatusDot();
+            flushLocalPendingMessages();
         }, (error) => {
             console.warn('Firebase load error:', error);
-            loadRoomMessages(); // Fallback
+            try { logFirebaseError('Firebase load error', error); } catch (e) { console.warn('logFirebaseError failed', e); }
+            // show user-facing warning when permission denied
+            try { showChatBackendError(error && error.message ? error.message : 'Firebase load error'); } catch (e) {}
+            // on error, keep local cache
+            loadRoomMessages();
             renderChatMessages();
+            firebaseConnected = false;
+            updateChatStatusDot();
         });
 
-        // Listen for new messages to show notifications
+        // Listen for new messages to show notifications and merge
         window.firebaseOnChildAdded(messagesRef, (snapshot) => {
             const message = snapshot.val();
-            if (message && message.senderId !== currentUser.id) {
-                // New message from someone else
+            if (!message) return;
+            // merge into local in a deduped way
+            pushUniqueToLocal(message);
+            // Notify if it's from someone else
+            if (message.senderId !== currentUser.id) {
                 updateUnreadBadge(unreadChatCount + 1);
                 showChatNotification(message.senderLabel || 'Someone', message.text);
                 playNotificationSound();
             }
+            renderChatMessages();
         }, (error) => {
             console.warn('Firebase listener error:', error);
+            try { logFirebaseError('Firebase listener error', error); } catch (e) { console.warn('logFirebaseError failed', e); }
+            try { showChatBackendError(error && error.message ? error.message : 'Firebase listener error'); } catch (e) {}
         });
 
-        firebaseConnected = true;
-        console.info('Firebase chat connected');
+        console.info('Firebase chat initialized');
+    }
+
+    function showChatBackendError(message) {
+        try {
+            let header = document.querySelector('.chat-header');
+            if (!header) return;
+            let el = document.getElementById('chatBackendError');
+            if (!el) {
+                el = document.createElement('div');
+                el.id = 'chatBackendError';
+                el.style.fontSize = '12px';
+                el.style.color = '#b91c1c';
+                el.style.padding = '4px 8px';
+                el.style.background = 'rgba(185,28,28,0.06)';
+                el.style.borderRadius = '6px';
+                el.style.marginLeft = '8px';
+                el.style.marginTop = '6px';
+                // place after header content
+                header.appendChild(el);
+            }
+            el.textContent = 'Chat backend issue: ' + message;
+        } catch (e) { console.warn('showChatBackendError failed', e); }
     }
 
     function saveRoomMessages() {
@@ -2226,13 +2437,22 @@ async function handlePdfData(data, fileName) {
         };
 
         if (firebaseConnected && window.firebaseDb && window.firebasePush && window.firebaseRef) {
-            const db = window.firebaseDb;
-            const messagesRef = window.firebaseRef(db, roomPath);
-            console.info('Firebase send:', message);
-            window.firebasePush(messagesRef, message);
+            try {
+                const db = window.firebaseDb;
+                const messagesRef = window.firebaseRef(db, roomPath);
+                console.info('Firebase send:', message);
+                window.firebasePush(messagesRef, message);
+            } catch (e) {
+                console.warn('Firebase push failed, saving locally:', e);
+                try { logFirebaseError('Firebase push failed', e); } catch (ee) { console.warn('logFirebaseError failed', ee); }
+                message._pending = true;
+                pushUniqueToLocal(message);
+                renderChatMessages();
+            }
         } else {
-            chatRoomMessages.push(message);
-            saveRoomMessages();
+            // offline or not connected: mark pending so it can be flushed later
+            message._pending = true;
+            pushUniqueToLocal(message);
             renderChatMessages();
         }
 
@@ -2285,11 +2505,24 @@ async function handlePdfData(data, fileName) {
     function loadChatPosition() {
         try {
             const pos = localStorage.getItem(chatPositionKey);
+            let bottom = CHAT_DEFAULT_POSITION.bottom;
+            let left = CHAT_DEFAULT_POSITION.left;
+            let right = null;
             if (pos) {
-                const { bottom, right } = JSON.parse(pos);
-                if (chatWidget) {
-                    chatWidget.style.bottom = bottom + 'px';
+                const parsed = JSON.parse(pos);
+                if (typeof parsed.bottom === 'number') bottom = parsed.bottom;
+                if (typeof parsed.left === 'number') left = parsed.left;
+                if (typeof parsed.right === 'number') right = parsed.right;
+            }
+            if (chatWidget) {
+                chatWidget.style.bottom = bottom + 'px';
+                // prefer saved left, fall back to saved right
+                if (right !== null) {
                     chatWidget.style.right = right + 'px';
+                    chatWidget.style.left = '';
+                } else {
+                    chatWidget.style.left = left + 'px';
+                    chatWidget.style.right = '';
                 }
             }
         } catch (error) {
@@ -2300,10 +2533,12 @@ async function handlePdfData(data, fileName) {
     function saveChatPosition() {
         try {
             if (chatWidget) {
-                const pos = {
-                    bottom: parseInt(window.getComputedStyle(chatWidget).bottom),
-                    right: parseInt(window.getComputedStyle(chatWidget).right)
-                };
+                const computed = window.getComputedStyle(chatWidget);
+                const bottom = parseInt(computed.bottom);
+                const left = computed.left ? parseInt(computed.left) : null;
+                const right = computed.right ? parseInt(computed.right) : null;
+                const pos = { bottom };
+                if (!isNaN(left)) pos.left = left; else if (!isNaN(right)) pos.right = right;
                 localStorage.setItem(chatPositionKey, JSON.stringify(pos));
             }
         } catch (error) {
@@ -2319,10 +2554,21 @@ async function handlePdfData(data, fileName) {
         return elements;
     }
 
+    // Default dock to left side now
+    const CHAT_DEFAULT_POSITION = { bottom: 24, left: 24 };
+
+    function ensureChatTransition() {
+        if (!chatWidget) return;
+        // gentle transition for programmatic moves (left/right)
+        chatWidget.style.transition = 'bottom 240ms cubic-bezier(.2,.9,.2,1), right 240ms cubic-bezier(.2,.9,.2,1), left 240ms cubic-bezier(.2,.9,.2,1)';
+    }
+
     function checkAndFixChatOverlay() {
         if (!chatWidget) return;
-        
+        ensureChatTransition();
         const chatRect = chatWidget.getBoundingClientRect();
+        let desiredLeft = null; // if set, we'll dock using left instead of right
+
         const mainContainer = document.querySelector('.main-container');
         const savePanel = document.getElementById('saveResultsContainer');
         const sideMenu = document.getElementById('sideMenu');
@@ -2347,9 +2593,13 @@ async function handlePdfData(data, fileName) {
                 shouldMove = true;
                 if (chatRect.left < mainRect.right && chatRect.right > mainRect.left) {
                     if (mainRect.left > viewportWidth / 2) {
+                        // move to right side of main container
                         newRight = viewportWidth - mainRect.left + padding;
+                        desiredLeft = null;
                     } else {
+                        // prefer left dock when main container is on right half
                         newRight = padding;
+                        desiredLeft = CHAT_DEFAULT_POSITION.left;
                     }
                 }
                 
@@ -2381,33 +2631,118 @@ async function handlePdfData(data, fileName) {
             
             if (overlaps(chatRect, saveRect)) {
                 shouldMove = true;
-                // Move chat to the left side of the save results panel
-                newRight = viewportWidth - saveRect.left + padding;
+                // Dock the chat to the left side (default behavior requested)
+                desiredLeft = CHAT_DEFAULT_POSITION.left;
             }
         }
         
         if (shouldMove) {
+            ensureChatTransition();
             chatWidget.style.bottom = newBottom + 'px';
-            chatWidget.style.right = newRight + 'px';
+            if (desiredLeft !== null) {
+                chatWidget.style.left = desiredLeft + 'px';
+                chatWidget.style.right = '';
+            } else {
+                chatWidget.style.right = newRight + 'px';
+                chatWidget.style.left = '';
+            }
             saveChatPosition();
+        } else {
+            // ensure it's within viewport bounds
+            const computedLeft = parseInt(window.getComputedStyle(chatWidget).left);
+            const computedRight = parseInt(window.getComputedStyle(chatWidget).right);
+            const computedBottom = parseInt(window.getComputedStyle(chatWidget).bottom);
+            const maxRight = Math.max(0, window.innerWidth - 64);
+            const maxBottom = Math.max(0, window.innerHeight - 64);
+            let mutated = false;
+            if (!isNaN(computedLeft) && computedLeft > window.innerWidth - 64) {
+                ensureChatTransition();
+                chatWidget.style.left = Math.max(0, window.innerWidth - 64) + 'px';
+                mutated = true;
+            }
+            if (!isNaN(computedRight) && computedRight > maxRight) {
+                ensureChatTransition();
+                chatWidget.style.right = Math.min(computedRight, maxRight) + 'px';
+                mutated = true;
+            }
+            if (computedBottom > maxBottom) {
+                ensureChatTransition();
+                chatWidget.style.bottom = Math.min(computedBottom, maxBottom) + 'px';
+                mutated = true;
+            }
+            if (mutated) saveChatPosition();
         }
+    }
+
+    function showChatHintOnce() {
+        try {
+            const key = 'rgbranch_chat_hint_shown_v1';
+            if (localStorage.getItem(key)) return;
+            if (!chatToggleBtn || !chatWidget) return;
+            const tip = document.createElement('div');
+            tip.className = 'chat-hint';
+            tip.style.position = 'absolute';
+            tip.style.bottom = (parseInt(window.getComputedStyle(chatWidget).bottom || CHAT_DEFAULT_POSITION.bottom) + 72) + 'px';
+            // prefer left positioning for the hint
+            const computedLeft = parseInt(window.getComputedStyle(chatWidget).left || CHAT_DEFAULT_POSITION.left);
+            tip.style.left = (computedLeft) + 'px';
+            tip.style.background = 'rgba(17,24,39,0.95)';
+            tip.style.color = 'white';
+            tip.style.padding = '8px 12px';
+            tip.style.borderRadius = '12px';
+            tip.style.boxShadow = '0 6px 18px rgba(0,0,0,0.2)';
+            tip.style.fontSize = '13px';
+            tip.style.zIndex = 999999;
+            tip.style.opacity = '0';
+            tip.textContent = 'Click to open chat — drag to move. Double-click to reset position.';
+            document.body.appendChild(tip);
+            // animate in
+            requestAnimationFrame(() => { tip.style.transition = 'opacity 240ms ease, transform 240ms ease'; tip.style.opacity = '1'; tip.style.transform = 'translateY(-6px)'; });
+            setTimeout(() => {
+                tip.style.opacity = '0';
+                tip.style.transform = 'translateY(-12px)';
+                setTimeout(() => tip.remove(), 600);
+            }, 4200);
+            localStorage.setItem(key, '1');
+        } catch (e) { console.warn('showChatHintOnce failed', e); }
     }
 
     function initChatDrag() {
         if (!chatToggleBtn || !chatWidget) return;
         
         let isDragging = false;
-        let startX, startY, startRight, startBottom;
+        let startX, startY, startRight, startLeft, startBottom, anchoredLeft;
+        let lastTap = 0;
         
         const handleMouseDown = (e) => {
             isDragging = true;
+            // cancel any auto-return while user interacts
+            if (chatAutoReturnTimer) { clearTimeout(chatAutoReturnTimer); chatAutoReturnTimer = null; }
             startX = e.clientX;
             startY = e.clientY;
-            startRight = parseInt(window.getComputedStyle(chatWidget).right);
-            startBottom = parseInt(window.getComputedStyle(chatWidget).bottom);
+            const computed = window.getComputedStyle(chatWidget);
+            startRight = parseInt(computed.right);
+            startLeft = parseInt(computed.left);
+            anchoredLeft = !isNaN(startLeft);
+            startBottom = parseInt(computed.bottom);
             
             chatToggleBtn.classList.add('dragging');
             chatWidget.style.transition = 'none';
+        };
+
+        const handleDoubleClickReset = (e) => {
+            // double-click or double-tap resets to default position (left)
+            ensureChatTransition();
+            chatWidget.style.left = CHAT_DEFAULT_POSITION.left + 'px';
+            chatWidget.style.right = '';
+            chatWidget.style.bottom = CHAT_DEFAULT_POSITION.bottom + 'px';
+            saveChatPosition();
+            // small pulse to indicate reset
+            chatToggleBtn.animate([
+                { transform: 'scale(1)' },
+                { transform: 'scale(1.08)' },
+                { transform: 'scale(1)' }
+            ], { duration: 320, easing: 'ease-out' });
         };
         
         const handleMouseMove = (e) => {
@@ -2416,10 +2751,17 @@ async function handlePdfData(data, fileName) {
             const deltaX = e.clientX - startX;
             const deltaY = e.clientY - startY;
             
-            const newRight = Math.max(0, startRight - deltaX);
-            const newBottom = Math.max(0, startBottom - deltaY);
-            
-            chatWidget.style.right = newRight + 'px';
+            let newBottom = Math.max(0, startBottom - deltaY);
+            if (anchoredLeft) {
+                // moving right increases left
+                const newLeft = Math.max(0, startLeft + deltaX);
+                chatWidget.style.left = newLeft + 'px';
+                chatWidget.style.right = '';
+            } else {
+                const newRight = Math.max(0, startRight - deltaX);
+                chatWidget.style.right = newRight + 'px';
+                chatWidget.style.left = '';
+            }
             chatWidget.style.bottom = newBottom + 'px';
         };
         
@@ -2438,9 +2780,19 @@ async function handlePdfData(data, fileName) {
         document.addEventListener('mousemove', handleMouseMove);
         document.addEventListener('mouseup', handleMouseUp);
         
+        // double click to reset position
+        chatToggleBtn.addEventListener('dblclick', handleDoubleClickReset);
+
         chatToggleBtn.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
             handleMouseDown({ clientX: touch.clientX, clientY: touch.clientY });
+            // detect double-tap
+            const now = Date.now();
+            const DT = 300;
+            if (now - (chatToggleBtn._lastTap || 0) < DT) {
+                handleDoubleClickReset();
+            }
+            chatToggleBtn._lastTap = now;
         });
         
         document.addEventListener('touchmove', (e) => {
@@ -3184,6 +3536,9 @@ async function handlePdfData(data, fileName) {
 
         if (chatToggleBtn) {
             chatToggleBtn.addEventListener('click', toggleChatWindow);
+            // add accessible tooltip and title
+            chatToggleBtn.setAttribute('title', 'Open chat — drag to move. Double-click to reset position.');
+            chatToggleBtn.setAttribute('aria-label', 'Open chat — drag to move');
         }
 
         if (chatCloseBtn) {
@@ -3308,11 +3663,16 @@ async function handlePdfData(data, fileName) {
                     }
 
                     const preferredTheme = localStorage.getItem('imageCompilerTheme') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-                    applyTheme(preferredTheme);
+                    // Use shared PonytailTheme if available, otherwise fallback to global applyTheme()
+                    if ((window.PonytailTheme || {}).applyTheme) {
+                        window.PonytailTheme.applyTheme(preferredTheme);
+                    } else if (typeof applyTheme === 'function') {
+                        try { applyTheme(preferredTheme); } catch (e) { logFirebaseError('applyTheme.fallbackError', e); }
+                    }
                     updateUndoRedoButtonStates();
                     updateFinishButtonState();
 
-                    // Initialize saved results UI from localStorage
+                                // Initialize saved results UI from localStorage
                     initializeSavedResultsUI();
                     loadRoomMessages();
                     initializeEmojiPicker();
@@ -3322,6 +3682,8 @@ async function handlePdfData(data, fileName) {
                     loadChatPosition();
                     initChatDrag();
                     checkAndFixChatOverlay();
+                    // show hint for chat button on first use
+                    setTimeout(() => showChatHintOnce(), 800);
                 }
 
     document.addEventListener('DOMContentLoaded', initApp);
