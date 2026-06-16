@@ -2688,21 +2688,26 @@ async function handlePdfData(data, fileName) {
         }, 50);
     }
 
-    function applyTheme(theme) {
-        htmlElement.classList.remove('light', 'dark');
-        htmlElement.classList.add(theme);
-        localStorage.setItem('imageCompilerTheme', theme);
+    // ponytail: use shared theme util
+    if (!window.PonytailTheme) {
+        const _s = document.createElement('script');
+        _s.src = '/tools/shared/theme.js';
+        _s.defer = true;
+        document.head.appendChild(_s);
+    }
 
+    window.addEventListener('themeChanged', (e) => {
+        const theme = e.detail && e.detail.theme ? e.detail.theme : (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        try { localStorage.setItem('imageCompilerTheme', theme); } catch(e) {}
         if (themeToggleButton) {
             const moonIcon = themeToggleButton.querySelector('.icon-moon');
             const sunIcon = themeToggleButton.querySelector('.icon-sun');
             if (moonIcon) moonIcon.style.display = theme === 'dark' ? 'none' : 'block';
             if (sunIcon) sunIcon.style.display = theme === 'dark' ? 'block' : 'none';
         }
-
         setActiveCategoryButtonUI();
         drawInteractiveCanvas();
-    }
+    });
 
     function createHiddenFileInput() {
         hiddenFileInput = document.createElement('input');
@@ -3139,10 +3144,7 @@ async function handlePdfData(data, fileName) {
         });
 
         if (themeToggleButton) {
-            themeToggleButton.addEventListener('click', () => {
-                const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-                applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-            });
+            themeToggleButton.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
         }
 
         if (clockToggleButton && clockTimeText && clockIcon) {

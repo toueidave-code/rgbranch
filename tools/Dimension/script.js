@@ -33,33 +33,27 @@ document.addEventListener('DOMContentLoaded', () => {
     copyButton.addEventListener('click', copyNumbersToClipboard);
     document.body.addEventListener('paste', handlePaste);
 
-    // Theme Toggle Event Listeners
+    // Theme Toggle Event Listeners (use shared theme util)
+    if (!window.PonytailTheme) {
+        const _s = document.createElement('script');
+        _s.src = '/tools/shared/theme.js';
+        _s.defer = true;
+        document.head.appendChild(_s);
+    }
     if (themeToggleButton) {
-        themeToggleButton.addEventListener('click', toggleTheme);
+        themeToggleButton.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
     }
     if (themeToggleButtonDesktop) {
-        themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+        themeToggleButtonDesktop.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
     }
 
-    // --- Functions ---
-    function toggleTheme() {
-        const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-        applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-    }
-
-    function applyTheme(theme) {
-        htmlElement.classList.remove('light', 'dark');
-        htmlElement.classList.add(theme);
-        localStorage.setItem('tcdRaingutterTheme', theme);
-
-        // Update all theme toggle icons
-        moonIcons.forEach(icon => {
-            icon.style.display = theme === 'dark' ? 'none' : 'block';
-        });
-        sunIcons.forEach(icon => {
-            icon.style.display = theme === 'dark' ? 'block' : 'none';
-        });
-    }
+    // ponytail: toggle/apply replaced by shared util
+    window.addEventListener('themeChanged', (e) => {
+        const theme = e.detail && e.detail.theme ? e.detail.theme : (document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+        try { localStorage.setItem('tcdRaingutterTheme', theme); } catch(e){}
+        moonIcons.forEach(icon => { icon.style.display = theme === 'dark' ? 'none' : 'block'; });
+        sunIcons.forEach(icon => { icon.style.display = theme === 'dark' ? 'block' : 'none'; });
+    });
 
     function handleDrop(e) {
         e.preventDefault();

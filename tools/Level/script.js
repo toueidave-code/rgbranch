@@ -204,25 +204,16 @@ function hideResultCard() {
  * Stores the preference in localStorage.
  * @param {string} theme - 'light' or 'dark'.
  */
-function applyTheme(theme) {
-    htmlElement.classList.remove('light', 'dark');
-    htmlElement.classList.add(theme);
-    localStorage.setItem('tcdRaingutterTheme', theme);
+// ponytail: use shared theme util
+if (!window.PonytailTheme) {
+    const _s = document.createElement('script');
+    _s.src = '/tools/shared/theme.js';
+    _s.defer = true;
+    document.head.appendChild(_s);
+}
 
-    // Update theme toggle icon visibility
-    const moonIcons = document.querySelectorAll('.icon-moon');
-    const sunIcons = document.querySelectorAll('.icon-sun');
-    
-    moonIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'none' : 'block';
-    });
-    
-    sunIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'block' : 'none';
-    });
-
-    // Re-draw the canvas with the new theme colors if it's visible
-    if (resultCard.style.display !== 'none' && !isNaN(parseFloat(pointAInput.value))) {
+window.addEventListener('themeChanged', (e) => {
+    if (resultCard && resultCard.style.display !== 'none' && !isNaN(parseFloat(pointAInput.value))) {
         const pointA = parseFloat(pointAInput.value);
         const pointC = parseFloat(pointCInput.value);
         const totalLength = parseFloat(totalLengthInput.value);
@@ -234,22 +225,19 @@ function applyTheme(theme) {
         const pointB = pointA + changeAB;
         drawDiagram(pointA, pointB, pointC, totalLength, lengthBC);
     }
-}
+});
 
 /**
  * Toggles between light and dark theme
  */
-function toggleTheme() {
-    const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-}
+// ponytail: toggle replaced by shared util
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme based on localStorage or system preference
     const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(preferredTheme);
+    (window.PonytailTheme || {}).applyTheme && (window.PonytailTheme.applyTheme(preferredTheme));
 
     // Calculator button and input listeners
     calculateButton.addEventListener('click', calculateMissingLevel);
@@ -259,7 +247,7 @@ document.addEventListener('DOMContentLoaded', function() {
     lengthBCInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateMissingLevel(); });
 
     // Theme toggle listener
-    themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+    themeToggleButtonDesktop.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
 
     // Refresh button functionality
     document.getElementById('refreshBtn').addEventListener('click', function() {

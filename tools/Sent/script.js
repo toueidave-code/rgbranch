@@ -886,28 +886,19 @@ function updateFileLabel() {
 }
 
 // Function to handle theme toggling
-function applyTheme(theme) {
-    htmlElement.classList.remove('light', 'dark');
-    htmlElement.classList.add(theme);
-    localStorage.setItem('tcdRaingutterTheme', theme);
-
-    const moonIcons = document.querySelectorAll('.icon-moon');
-    const sunIcons = document.querySelectorAll('.icon-sun');
-
-    moonIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'none' : 'block';
-    });
-
-    sunIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'block' : 'none';
-    });
+// ponytail: use shared theme util
+// Ensure shared theme util is loaded
+if (!window.PonytailTheme) {
+    const _s = document.createElement('script');
+    _s.src = '/tools/shared/theme.js';
+    _s.defer = true;
+    document.head.appendChild(_s);
 }
+
+// Use PonytailTheme.applyTheme in initialization and listeners
 
 // Toggles between light and dark theme
-function toggleTheme() {
-    const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-}
+// ponytail: toggleTheme replaced by shared util
 
 // Refresh button functionality
 document.getElementById('refreshBtn').addEventListener('click', function() {
@@ -932,13 +923,13 @@ document.getElementById('closeWindowBtn').addEventListener('click', function() {
 });
 
 // Event listeners for theme toggles
-themeToggleButton.addEventListener('click', toggleTheme);
-themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+themeToggleButton.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
+themeToggleButtonDesktop.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
 
 document.addEventListener('DOMContentLoaded', function() {
     const preferredTheme = localStorage.getItem('tcdRaingutterTheme') ||
                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(preferredTheme);
+    (window.PonytailTheme || {}).applyTheme && (window.PonytailTheme.applyTheme(preferredTheme));
 
     loadData();
     startAutoRefresh();

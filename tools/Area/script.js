@@ -95,38 +95,42 @@ function hideResultCard() {
  * Stores the preference in localStorage.
  * @param {string} theme - 'light' or 'dark'.
  */
-function applyTheme(theme) {
-    htmlElement.classList.remove('light', 'dark');
-    htmlElement.classList.add(theme);
-    localStorage.setItem('tcdRaingutterTheme', theme);
-
-    // Update theme toggle icon visibility
-    const moonIcons = document.querySelectorAll('.icon-moon');
-    const sunIcons = document.querySelectorAll('.icon-sun');
-    
-    moonIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'none' : 'block';
-    });
-    
-    sunIcons.forEach(icon => {
-        icon.style.display = theme === 'dark' ? 'block' : 'none';
-    });
+// ponytail: use shared theme util
+if (!window.PonytailTheme) {
+    const _s = document.createElement('script');
+    _s.src = '/tools/shared/theme.js';
+    _s.defer = true;
+    document.head.appendChild(_s);
 }
+
+// Listen for theme changes to re-draw when needed
+window.addEventListener('themeChanged', (e) => {
+    // Re-draw canvas when theme changes if visible
+    if (resultCard && resultCard.style.display !== 'none' && !isNaN(parseFloat(pointAInput.value))) {
+        const pointA = parseFloat(pointAInput.value);
+        const pointC = parseFloat(pointCInput.value);
+        const totalLength = parseFloat(totalLengthInput.value);
+        const lengthBC = parseFloat(lengthBCInput.value);
+        const lengthAB = totalLength - lengthBC;
+        const totalChange = pointC - pointA;
+        const proportion = lengthAB / totalLength;
+        const changeAB = totalChange * proportion;
+        const pointB = pointA + changeAB;
+        drawDiagram(pointA, pointB, pointC, totalLength, lengthBC);
+    }
+});
 
 /**
  * Toggles between light and dark theme
  */
-function toggleTheme() {
-    const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
-    applyTheme(currentTheme === 'light' ? 'dark' : 'light');
-}
+// ponytail: toggle replaced by shared util
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize theme based on localStorage or system preference
     const preferredTheme = localStorage.getItem('tcdRaingutterTheme') || 
                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-    applyTheme(preferredTheme);
+    (window.PonytailTheme || {}).applyTheme && (window.PonytailTheme.applyTheme(preferredTheme));
 
     // Calculator button and input listeners
     calculateButton.addEventListener('click', calculateArea);
@@ -135,8 +139,8 @@ document.addEventListener('DOMContentLoaded', function() {
     runInput.addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateArea(); });
 
     // Theme toggle listeners
-    themeToggleButton.addEventListener('click', toggleTheme);
-    themeToggleButtonDesktop.addEventListener('click', toggleTheme);
+    themeToggleButton.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
+    themeToggleButtonDesktop.addEventListener('click', () => { if (window.PonytailTheme) PonytailTheme.toggleTheme(); });
 
     // Refresh button functionality
     document.getElementById('refreshBtn').addEventListener('click', function() {
