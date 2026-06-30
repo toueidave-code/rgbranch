@@ -73,6 +73,17 @@ const previewsContainer = document.getElementById('previewsContainer');
 const themeToggleButton = document.getElementById('themeToggleBtn');
 const themeToggleButtonDesktop = document.getElementById('themeToggleBtnDesktop');
 const searchBar = document.getElementById('searchBar');
+const useLocalOcr = document.getElementById('useLocalOcr');
+const geminiModelSelect = document.getElementById('geminiModelSelect');
+
+// Initialize saved Gemini model choice (persist in localStorage)
+if (geminiModelSelect) {
+    const savedModel = localStorage.getItem('geminiModel') || 'gemini-2.5-flash';
+    geminiModelSelect.value = savedModel;
+    geminiModelSelect.addEventListener('change', () => {
+        try { localStorage.setItem('geminiModel', geminiModelSelect.value); } catch(e) {}
+    });
+}
 
 // Image Extractor Modal Elements
 const imageExtractorModal = document.getElementById('imageExtractorModal');
@@ -499,7 +510,10 @@ async function performExtraction(files) {
                 }
             };
 
-            const dynamicApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+            const selectedModel = (typeof geminiModelSelect !== 'undefined' && geminiModelSelect && geminiModelSelect.value) ? geminiModelSelect.value : (localStorage.getItem('geminiModel') || 'gemini-2.5-flash');
+localStorage.setItem('geminiModel', selectedModel);
+const modelSafe = encodeURIComponent(selectedModel);
+const dynamicApiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelSafe}:generateContent?key=${apiKey}`;
 
             const response = await fetch(dynamicApiUrl, {
                 method: 'POST',
@@ -548,6 +562,98 @@ async function performExtraction(files) {
     } catch (error) {
         console.error("Error extracting text:", error);
         alert(`Extraction failed: ${error.message}`);
+        extractedDataForSaving = [];
+        previewModal.classList.remove('is-active');
+    } finally {
+        extractButton.disabled = false;
+        extractButton.classList.remove('is-loading');
+        imageInput.value = ''; // Clear file input
+        pastedFiles = []; // Clear pasted files
+        previewsContainer.innerHTML = ''; // Clear thumbnails
+        updateFileLabel();
+    }
+}
+
+// Local OCR fallback using Tesseract.js (free, runs in-browser). 
+// ponytail: simple heuristic parser — add better language models/parsing only if this proves insufficient.
+async function performExtractionLocal(files) {
+    if (!files || files.length === 0) {
+        alert('Please select one or more image files first or paste a screenshot.');
+        return;
+    }
+
+    if (typeof Tesseract === 'undefined') {
+        alert('Local OCR is not available (Tesseract.js not loaded).');
+        return;
+    }
+
+    extractButton.disabled = true;
+    extractButton.classList.add('is-loading');
+    extractedDataForSaving = [];
+
+    try {
+        for (const file of files) {
+            // Use Tesseract to OCR the image
+            const result = await Tesseract.recognize(file, 'eng', { logger: m => console.log('Tesseract', m) });
+            const text = result && result.data && result.data.text ? result.data.text : '';
+            const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
+
+            const parsed = [];
+            for (const line of lines) {
+                // Look for lines starting with a leading number (project No.)
+                const m = line.match(/^(\d{4,})(?:[\)\-\.\s]+)?(.*)$/);
+                if (m) {
+                    const no = m[1];
+                    const rest = (m[2] || '').trim();
+                    const emails = (line.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g) || []).join(', ');
+                    const dateMatch = line.match(/(\d{1,2}:\d{2})/) || line.match(/(\d{4}\/\d{1,2}\/\d{1,2})/) || line.match(/(\d{1,2}\/\d{1,2}\/\d{4})/);
+                    const date = dateMatch ? dateMatch[0] : '';
+                    parsed.push({ 'No.': no, 'Subject': rest, 'Correspondents': emails, 'Date': date });
+                }
+            }
+
+            // If no rows found, try a fallback: group lines into 4-col rows when possible (very naive)
+            if (parsed.length === 0 && lines.length >= 4) {
+                for (let i = 0; i + 3 < lines.length; i += 4) {
+                    parsed.push({ 'No.': lines[i] || '', 'Subject': lines[i+1] || '', 'Correspondents': lines[i+2] || '', 'Date': lines[i+3] || '' });
+                }
+            }
+
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            const todayFormatted = `${year}/${month}/${day}`;
+
+            let filteredData = parsed.filter(item => {
+                return item['Subject'] && !item['Subject'].includes('【大工図納品】');
+            });
+
+            let cleanedData = filteredData.map(item => {
+                const newSubject = (item['Subject'] || '').replace('【雨樋図納品】', '').trim();
+                const newDate = (/^\d{1,2}:\d{2}$/.test(item['Date'])) ? `${todayFormatted} ${item['Date']}` : item['Date'];
+                return {
+                    'No.': (item['No.'] || '').toString(),
+                    'Subject': newSubject,
+                    'Correspondents': item['Correspondents'] || '',
+                    'Date': newDate
+                };
+            });
+
+            extractedDataForSaving.push(...cleanedData);
+        }
+
+        if (extractedDataForSaving.length === 0) {
+            alert('Local OCR completed but no structured rows were detected. Try enabling Gemini or adjust language settings.');
+        }
+
+        populatePreviewTable(extractedDataForSaving);
+        previewModal.classList.add('is-active');
+        alert(`Local OCR extracted ${extractedDataForSaving.length} row(s). Review the preview and click 'Save to Database'.`);
+
+    } catch (error) {
+        console.error('Local OCR error:', error);
+        alert(`Local OCR failed: ${error.message}`);
         extractedDataForSaving = [];
         previewModal.classList.remove('is-active');
     } finally {
@@ -866,7 +972,16 @@ async function confirmDelete() {
 // Event listeners for the new buttons
 extractButton.addEventListener('click', () => {
     const filesToProcess = Array.from(imageInput.files).concat(pastedFiles);
-    performExtraction(filesToProcess);
+    if (!filesToProcess || filesToProcess.length === 0) {
+        alert('Please select one or more image files first or paste a screenshot.');
+        return;
+    }
+    // If local OCR checkbox is checked, use Tesseract.js local OCR (free)
+    if (document.getElementById('useLocalOcr') && document.getElementById('useLocalOcr').checked) {
+        performExtractionLocal(filesToProcess);
+    } else {
+        performExtraction(filesToProcess);
+    }
 });
 
 saveButton.addEventListener('click', saveData);

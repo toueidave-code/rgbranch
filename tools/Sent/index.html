@@ -126,9 +126,22 @@
                     <label for="imageInput" class="file-label px-3 py-1.5 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease">Choose Images</label>
                     <div class="text-theme-text-muted dark:text-darkTheme-text-muted text-xs my-2">or drag and drop here</div>
                     <div id="previewsContainer" class="thumbnail-container"></div>
-                    <button id="extractButton" class="button primary px-5 py-2 mt-3 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
+                <div class="flex items-center gap-3 mt-3 w-full max-w-md justify-center">
+                    <label class="inline-flex items-center text-sm text-theme-text-muted dark:text-darkTheme-text-muted">
+                        Model:
+                        <select id="geminiModelSelect" class="ml-2 px-2 py-1 rounded border border-theme-border dark:border-darkTheme-border bg-theme-surface dark:bg-darkTheme-surface text-sm">
+                            <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                            <option value="gemini-2.5-proto">gemini-2.5-proto</option>
+                            <option value="gemini-2.1">gemini-2.1</option>
+                        </select>
+                    </label>
+                    <label class="inline-flex items-center text-sm text-theme-text-muted dark:text-darkTheme-text-muted">
+                        <input type="checkbox" id="useLocalOcr" class="mr-2"> Use local OCR (free)
+                    </label>
+                    <button id="extractButton" class="button primary px-5 py-2 bg-theme-accent text-theme-accent-contrast rounded-md text-sm font-semibold hover:bg-opacity-90 transition-all duration-200 ease-custom-ease flex items-center justify-center gap-2">
                         Extract Text <span id="loadingSpinner" class="spinner"></span>
                     </button>
+                </div>
                 </div>
             </div>
         </div>
@@ -277,7 +290,8 @@
     </div>
 
     <!-- Inline JavaScript removed - moved to script.js -->
-    <script></script>
+    <!-- Tesseract.js (local OCR, free) -->
+    <script src="https://unpkg.com/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
     
     <!-- External JavaScript -->
     <script src="script.js"></script>
